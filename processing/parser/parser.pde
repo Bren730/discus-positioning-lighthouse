@@ -15,6 +15,11 @@ int val;      // Data received from the serial port
 float xAngle = 0;
 float yAngle = 0;
 
+final int bufferSize = 10;
+final int msgLength = 5;
+int[] inBuffer = new int[bufferSize];
+byte bufferIndex = 0;
+
 void setup() 
 {
   size(400, 400);
@@ -30,30 +35,51 @@ void setup()
 void draw()
 {
   clear();
-  String input = "";
-  input = myPort.readStringUntil('\n');
-  if (input != "" && input != null) {
+}
 
-    String[] inputSplit = input.split(" ");
-
-    if (inputSplit.length > 1) {
-      float val = float(inputSplit[1]);
-      print(val + " ");
-      print(inputSplit[0]);
-
-      String type = inputSplit[0];
-      if (type.equals("X")) {
-        xAngle = val;
-      } else {
-        yAngle = val;
-      }
+void serialEvent(Serial p) {
+  
+  //print(p.read()+ ", ");
+  
+  inBuffer[bufferIndex] = p.read();
+  
+  
+  // Start flag received. Previous transmission should be complete
+  if(bufferIndex > 0 && inBuffer[bufferIndex] == 255 && inBuffer[bufferIndex - 1] == 255) {
+    
+    //println(inBuffer);
+    
+    if (bufferIndex == msgLength -1) {
       
-      xAngle = 180 - xAngle;
-      yAngle = 180 - yAngle;
-
-      point((xAngle / 180) * 400, (yAngle / 180) * 400);
-      stroke(255, 255, 255);
-      strokeWeight(10);
+      // We got the expected amount of bytes
+      // Construct angle data
+      // The first two bytes are the deltaT
+      short int16 = (short)(((inBuffer[0] & 0xFF) << 8) | (inBuffer[1] & 0xFF));
+      print(int16 + ", ");
+      int meta = inBuffer[2];
+      println(binary(meta));
+      //print(getBit(meta, 1) + ", ");
+      
     }
+    
+    //Start flags found. Reset buffer and set index to 0
+    inBuffer = new int[bufferSize];
+    bufferIndex = 0;
+    
+  } else {
+    
+    bufferIndex++;
+    
   }
+  
+  if (bufferIndex >= bufferSize) {
+    
+   bufferIndex = 0; 
+    
+  }
+  
+}
+
+int getBit(int number, int position) {
+  return (number >> position) & 1;
 }

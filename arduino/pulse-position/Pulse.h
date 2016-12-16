@@ -13,6 +13,7 @@ public:
 	// Definitions
 
 	// Variables
+	bool station;
 	bool skip;
 	bool rotor;
 	bool data;

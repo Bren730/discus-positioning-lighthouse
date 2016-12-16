@@ -16,9 +16,10 @@ public:
 	unsigned long pulseStart;
 	unsigned long pulseLength;
 	unsigned long syncPulseStart;
-	uint16_t deltaT;
+	uint16_t deltaT; // Max cycle length is 8333us, so we only need a 16 bit integer
 	bool sawSyncPulse;
 
+	bool station;
 	bool skip;
 	bool rotor;
 	bool data;
