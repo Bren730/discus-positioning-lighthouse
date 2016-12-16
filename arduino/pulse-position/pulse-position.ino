@@ -27,7 +27,7 @@ bool sawSyncPulse;
 bool isXSweep;
 
 PulsePosition pulsePosition;
-LighthouseSensor sensor(sensor1Pin);
+LighthouseSensor sensor(sensor1Pin, 0);
 
 void setup() {
 

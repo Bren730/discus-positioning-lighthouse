@@ -72,8 +72,12 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
 #ifndef HUMAN_READABLE
         Serial.write(0xff);
         Serial.write(0xff);
+        
         Serial.write((sensor.deltaT >> 8));
         Serial.write((sensor.deltaT & 0x00FF));
+
+        Serial.write(sensor.id);
+        
         Serial.write(meta);
 #endif
 
