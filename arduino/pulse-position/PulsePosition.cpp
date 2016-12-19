@@ -22,7 +22,19 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
   if (digitalReadFast(sensor.pin) == HIGH) {
     // This is the rising edge of the pulse
     // Record start time of pulse
+    unsigned long prevPulseStart = sensor.pulseStart;
     sensor.pulseStart = micros();
+    unsigned long diff = sensor.pulseStart - prevPulseStart;
+
+    // CPU Cycle count
+    // Overflows every 44.73s
+    clockCycles = ARM_DWT_CYCCNT - prevClockCycles;
+    prevClockCycles = ARM_DWT_CYCCNT;
+    Serial.println("cycles:");
+    Serial.println((clockCycles / 96.0), 8);
+    Serial.println(diff);
+    Serial.println("---");
+    
 
   } else {
     // This is the falling edge of the pulse

@@ -31,6 +31,10 @@ LighthouseSensor sensor(sensor1Pin, 0);
 
 void setup() {
 
+  // Enable clock cycle counter
+  ARM_DEMCR |= ARM_DEMCR_TRCENA;
+  ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
+
   pinMode(sensor1Pin, INPUT);
   attachInterrupt(sensor1Pin, interruptHandler, CHANGE);
 
@@ -47,6 +51,7 @@ void setup() {
 }
 
 void loop() {
+
   
 }
 
