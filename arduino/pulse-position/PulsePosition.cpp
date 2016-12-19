@@ -1,16 +1,23 @@
 #include "PulsePosition.h"
 #include <Arduino.h>
 
-// #define SYNC_PULSE_DEBUG
+//#define SYNC_PULSE_DEBUG
 //#define HUMAN_READABLE
+
+void printBits(byte myByte) {
+  for (byte mask = 0x80; mask; mask >>= 1) {
+    if (mask  & myByte)
+      Serial.print('1');
+    else
+      Serial.print('0');
+  }
+}
 
 PulsePosition::PulsePosition() {
 
 }
 
 void PulsePosition::begin() {
-
-
 
 }
 
@@ -21,41 +28,69 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
   if (digitalReadFast(sensor.pin) == HIGH) {
     // This is the rising edge of the pulse
-    // Record start time of pulse
-    unsigned long prevPulseStart = sensor.pulseStart;
-    sensor.pulseStart = micros();
-    unsigned long diff = sensor.pulseStart - prevPulseStart;
-
-    // CPU Cycle count
+    // Record start time of pulse as CPU Cycle count
     // Overflows every 44.73s
-    clockCycles = ARM_DWT_CYCCNT - prevClockCycles;
-    prevClockCycles = ARM_DWT_CYCCNT;
-    Serial.println("cycles:");
-    Serial.println((clockCycles / 96.0), 8);
-    Serial.println(diff);
-    Serial.println("---");
-    
+    sensor.pulseStart = ARM_DWT_CYCCNT;
 
   } else {
     // This is the falling edge of the pulse
     // Record the pulse length
 
-    sensor.pulseLength = micros() - sensor.pulseStart;
+    sensor.pulseLength = ARM_DWT_CYCCNT - sensor.pulseStart;
     Pulse pulse = parsePulseType(sensor.pulseLength);
 
     if (pulse.pulseType == Pulse::PulseType::SYNC_PULSE) {
 
-      sensor.syncPulseStart = sensor.pulseStart;
-      sensor.sawSyncPulse = true;
+      // If we did not see a sync pulse, or if a single sweep cycle has elapsed
+      // Write out the start flags and sync pulse metadata
+      if (!sawSyncPulse || ARM_DWT_CYCCNT - syncPulseStart > SWEEP_CYCLE_CLOCK_CYCLES - 10000) {
+        // Only register pulseStart if it is the first sync pulse
 
-      sensor.station = pulse.station;
-      sensor.skip = pulse.skip;
-      sensor.rotor = pulse.rotor;
-      sensor.data = pulse.data;
+        for (byte i = 0; i < 4; i++) {
+          // reset all sensors
+          // sawSweep is used for reflection elimination
+          sawSweep[i] = false;
+          
+        }
+        
+        station = pulse.station;
+        skip = pulse.skip;
+        rotor = pulse.rotor;
+        data = pulse.data;
+        meta = 0;
+
+        // Construct meta byte
+        (station) ? bitSet(meta, 3) : false;
+        (skip) ? bitSet(meta, 2) : false;
+        (rotor) ? bitSet(meta, 1) : false;
+        (data) ? bitSet(meta, 0) : false;
+
+#ifndef HUMAN_READABLE
+        Serial.write(0xff);
+        Serial.write(0xff);
+        Serial.write(meta);
+#endif
+
+#ifdef HUMAN_READABLE
+        Serial.println();
+        Serial.println("Sync pulse, meta:");
+        printBits(meta);
+        Serial.println();
+        Serial.println();
+        Serial.println("Sensors:");
+#endif
+
+        syncPulseStart = sensor.pulseStart;
+
+        sawSyncPulse = true;
+
+      }
+
+      syncPulseCounter++;
 
       if (resetSyncPulseTimer) {
 
-        syncPulseTimer = sensor.syncPulseStart;
+        syncPulseTimer = syncPulseStart;
         resetSyncPulseTimer = false;
 
       }
@@ -64,49 +99,51 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
     if (pulse.pulseType == Pulse::PulseType::SWEEP) {
 
-      resetSyncPulseTimer = true;
+      if(!sawSweep[sensor.id]){
+
+        resetSyncPulseTimer = true;
 
       // Check if the pulse falls within one sweep cycle time
       // And check if we saw a sync pulse before it
-      if (micros() - sensor.syncPulseStart < SWEEP_CYCLE_TIME && sensor.sawSyncPulse) {
+      if (ARM_DWT_CYCCNT - syncPulseStart < SWEEP_CYCLE_CLOCK_CYCLES - 10000 && sawSyncPulse) {
 
-        sensor.deltaT = micros() - sensor.syncPulseStart;
+        // Assign the base station
+        // If we saw more than 1 sync pulse, it's basestation b
+        // todo: Improve base station detection
+        (syncPulseCounter > 1) ? station = false : station = true;
+
+        // Sweep registered, reset sync pulse counter
+        syncPulseCounter = 0;
+
+        sensor.deltaT = ARM_DWT_CYCCNT - syncPulseStart;
         // Serial.println(String(sensor.deltaT) + ", " + String(sensor.skip) + ", " + String(sensor.rotor) + ", " + String(sensor.data));
 
-        byte meta = 0;
-
-        // Construct meta byte
-        (sensor.station) ? bitSet(meta, 3) : false;
-        (sensor.skip) ? bitSet(meta, 2) : false;
-        (sensor.rotor) ? bitSet(meta, 1) : false;
-        (sensor.data) ? bitSet(meta, 0) : false;
-
 #ifndef HUMAN_READABLE
-        Serial.write(0xff);
-        Serial.write(0xff);
-        
-        Serial.write((sensor.deltaT >> 8));
-        Serial.write((sensor.deltaT & 0x00FF));
 
         Serial.write(sensor.id);
-        
-        Serial.write(meta);
+        Serial.write((sensor.deltaT >> 24));
+        Serial.write((sensor.deltaT >> 16));
+        Serial.write((sensor.deltaT >> 8));
+        Serial.write((sensor.deltaT & 0x00FF));
 #endif
 
 #ifdef HUMAN_READABLE
+        Serial.print(String(sensor.id) + ", ");
         Serial.print(String(sensor.deltaT) + ", ");
-        Serial.print(meta, BIN);
         Serial.println();
 #endif
 
-        // Reset sawSyncPulse for next pulse/sweep
-        sensor.sawSyncPulse = false;
+        sawSweep[sensor.id] = true;
+        
+      }
+
+      
 
       } else {
 
         // Sweep pulse registered, but no sync pulse came before it
         // Ignore data
-        sensor.sawSyncPulse = false;
+        sawSyncPulse = false;
 
       }
 
@@ -121,7 +158,7 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
 Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
-  if (pulseLength >= S0R0D0 - 5 && pulseLength < S0R0D0 + 5) {
+  if (pulseLength >= S0R0D0 - PULSE_CHANNEL_WIDTH && pulseLength < S0R0D0 + PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("Skip 0, rotor 0, data 0");
@@ -132,7 +169,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   }
 
-  if (pulseLength >= S0R0D1 - 5 && pulseLength < S0R0D1 + 5) {
+  if (pulseLength >= S0R0D1 - PULSE_CHANNEL_WIDTH && pulseLength < S0R0D1 + PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("Skip 0, rotor 0, data 1");
@@ -143,7 +180,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   }
 
-  if (pulseLength >= S0R1D0 - 5 && pulseLength < S0R1D0 + 5) {
+  if (pulseLength >= S0R1D0 - PULSE_CHANNEL_WIDTH && pulseLength < S0R1D0 + PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("Skip 0, rotor 1, data 0");
@@ -154,7 +191,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   }
 
-  if (pulseLength >= S0R1D1 - 5 && pulseLength < S0R1D1 + 5) {
+  if (pulseLength >= S0R1D1 - PULSE_CHANNEL_WIDTH && pulseLength < S0R1D1 + PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("Skip 0, rotor 1, data 1");
@@ -165,7 +202,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   }
 
-  if (pulseLength >= S1R0D0 - 5 && pulseLength < S1R0D0 + 5) {
+  if (pulseLength >= S1R0D0 - PULSE_CHANNEL_WIDTH && pulseLength < S1R0D0 + PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("Skip 1, rotor 0, data 0");
@@ -176,7 +213,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   }
 
-  if (pulseLength >= S1R0D1 - 5 && pulseLength < S1R0D1 + 5) {
+  if (pulseLength >= S1R0D1 - PULSE_CHANNEL_WIDTH && pulseLength < S1R0D1 + PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("Skip 1, rotor 0, data 1");
@@ -187,7 +224,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   }
 
-  if (pulseLength >= S1R1D0 - 5 && pulseLength < S1R1D0 + 5) {
+  if (pulseLength >= S1R1D0 - PULSE_CHANNEL_WIDTH && pulseLength < S1R1D0 + PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("Skip 1, rotor 1, data 0");
@@ -198,7 +235,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   }
 
-  if (pulseLength >= S1R1D1 - 5 && pulseLength < S1R1D1 + 5) {
+  if (pulseLength >= S1R1D1 - PULSE_CHANNEL_WIDTH && pulseLength < S1R1D1 + PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("Skip 1, rotor 1, data 1");
@@ -209,7 +246,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   }
 
-  if (pulseLength < S0R0D0 - 5) {
+  if (pulseLength < S0R0D0 - PULSE_CHANNEL_WIDTH) {
 
 #ifdef SYNC_PULSE_DEBUG
     Serial.println("sweep");

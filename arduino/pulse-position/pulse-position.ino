@@ -2,21 +2,11 @@
 
 #include "PulsePosition.h"
 
-// Pulse length definitions
-// Formatted as:
-// Skip 0/1, if rotor will skip laser
-// Rotor 0/1, signifies which rotor is performing a sweep
-// Data 0/1, data bit of the OOTX frame
-#define S0R0D0 63
-#define S0R0D1 83
-#define S0R1D0 73
-#define S0R1D1 94
-#define S1R0D0 104
-#define S1R0D1 125
-#define S1R1D0 115
-#define S1R1D1 135
-
-byte sensor1Pin = 5;
+// Teensy 3.2 can run interrupts on pins 0-24 (exposed) and 29-33 (underside)
+#define IC_0 0
+#define IC_1 1
+#define IC_2 2
+#define IC_3 3
 
 volatile unsigned long sensor1Start;
 volatile unsigned long sensor1Length;
@@ -27,7 +17,11 @@ bool sawSyncPulse;
 bool isXSweep;
 
 PulsePosition pulsePosition;
-LighthouseSensor sensor(sensor1Pin, 0);
+
+LighthouseSensor ic0(IC_0);
+LighthouseSensor ic1(IC_1);
+LighthouseSensor ic2(IC_2);
+LighthouseSensor ic3(IC_3);
 
 void setup() {
 
@@ -35,8 +29,11 @@ void setup() {
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
   ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
 
-  pinMode(sensor1Pin, INPUT);
-  attachInterrupt(sensor1Pin, interruptHandler, CHANGE);
+  
+  attachInterrupt(IC_0, ic0ISR, CHANGE);
+  attachInterrupt(IC_1, ic1ISR, CHANGE);
+//  attachInterrupt(IC_2, ic2ISR, CHANGE);
+//  attachInterrupt(IC_3, ic3ISR, CHANGE);
 
   Serial.begin(115200);
 
@@ -55,10 +52,26 @@ void loop() {
   
 }
 
-void interruptHandler() {
+void ic0ISR() {
   
-    pulsePosition.parsePulse(sensor);
+    pulsePosition.parsePulse(ic0);
     
 }
 
+void ic1ISR() {
+  
+    pulsePosition.parsePulse(ic1);
+    
+}
 
+void ic2ISR() {
+  
+    pulsePosition.parsePulse(ic2);
+    
+}
+
+void ic3ISR() {
+  
+    pulsePosition.parsePulse(ic3);
+    
+}

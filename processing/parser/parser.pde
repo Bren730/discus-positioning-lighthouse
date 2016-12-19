@@ -12,102 +12,140 @@ import processing.serial.*;
 Serial myPort;  // Create object from Serial class
 int val;      // Data received from the serial port
 
-double xAngle = 0;
-double yAngle = 0;
-
-final int bufferSize = 10;
-final int msgLength = 6;
+final int msgLength = 5;
+final int bufferSize = 32 * msgLength;
 int[] inBuffer = new int[bufferSize];
+int[] flagBuffer = new int[2];
 byte bufferIndex = 0;
+byte sensor = 0;
+byte sensorCount = 4;
+
+byte station;
+byte skip;
+byte rotor;
+byte data;
+
+double[] xAngle = new double[sensorCount];
+double[] yAngle = new double[sensorCount];
+
+final double CPU_SPEED = 96.0; // CPU speed in MHz
+final double SWEEP_CYCLE_TIME = 8333; // Sweep cycle time in us
+final double SWEEP_CYCLE_CLOCK_CYCLES = SWEEP_CYCLE_TIME * CPU_SPEED; // Amount of CPU cycles per sweep
 
 void setup() 
 {
   size(800, 800);
-  // I know that the first port in the serial list on my mac
-  // is always my  FTDI adaptor, so I open Serial.list()[0].
-  // On Windows machines, this generally opens COM1.
-  // Open whatever port is the one you're using.
   String portName = Serial.list()[1];
-  
+
   myPort = new Serial(this, portName, 115200);
 }
 
 void draw()
 {
   clear();
-  float xRad = radians(((float)xAngle - 90));
-  float yRad = -1 * radians(((float)yAngle - 90));
-  
-  float xPos = 400 + xRad * 400;
-  float yPos = 400 + yRad * 400;
-  
-  println(xPos, yPos);
-  point(xPos, yPos);
-  stroke(255, 255, 255);
-  strokeWeight(10);
+
+  for (int i = 0; i < sensorCount; i++) {
+
+    if (xAngle[i] > 0) {
+
+
+      float xRad = radians(((float)xAngle[i] - 90));
+      float yRad = -1 * radians(((float)yAngle[i] - 90));
+
+      float xPos = 400 + xRad * 400;
+      float yPos = 400 + yRad * 400;
+
+      //println(xPos, yPos);
+      point(xPos, yPos);
+
+      if (i == 0) {
+        stroke(255, 0, 0);
+      }
+      if (i == 1) {
+        stroke(255, 255, 0);
+      }
+      if (i == 2) {
+        stroke(0, 255, 0);
+      }
+      if (i == 3) {
+        stroke(0, 255, 255);
+      }
+
+      strokeWeight(10);
+    }
+  }
 }
 
 void serialEvent(Serial p) {
-  
-  //print(p.read()+ ", ");
-  
-  inBuffer[bufferIndex] = p.read();
-  
-  
-  // Start flag received. Previous transmission should be complete
-  if(bufferIndex > 0 && inBuffer[bufferIndex] == 255 && inBuffer[bufferIndex - 1] == 255) {
-    
-    //println(inBuffer);
-    
-    if (bufferIndex == msgLength -1) {
-      
-      // We got the expected amount of bytes
-      // Construct angle data
-      // The first two bytes are the deltaT
-      short deltaT = (short)(((inBuffer[0] & 0xFF) << 8) | (inBuffer[1] & 0xFF));
-      
-      // The next byte is the sensor id
-      //print(inBuffer[2] + ", ");
-      
-      // Finally, the meta byte contains data about the station, skip, rotor and data
-      int meta = inBuffer[3];
-      int station = getBit(meta, 3);
-      int skip = getBit(meta, 2);
-      int rotor = getBit(meta, 1);
-      int data = getBit(meta, 0);
-      
+
+  flagBuffer[1] = flagBuffer[0];
+  flagBuffer[0] = p.read();
+  inBuffer[bufferIndex] = flagBuffer[0];
+  bufferIndex++;
+
+  if (flagBuffer[0] == 255 && flagBuffer[1] == 255) {
+    //println("Startflag received");
+    parseData();
+    bufferIndex = 0;
+  }
+}
+
+void parseData() {
+
+  //println("Parsing data");
+  int sensorCnt = floor(bufferIndex / msgLength);
+  //println("Sensor count", sensorCnt);
+
+  // First byte is the metadata byte holding station, skip, rotor and data values
+  int meta = inBuffer[0];
+
+  station = (byte)getBit(meta, 3);
+  skip = (byte)getBit(meta, 2);
+  rotor = (byte)getBit(meta, 1);
+  data = (byte)getBit(meta, 0);
+
+  //println(station, skip, rotor, data);
+
+  if (sensorCnt > 0) {
+
+    for (int i = 0; i < sensorCnt; i++) {
+
+      int readPos = (i * msgLength) + 1;
+
+      byte sensorId = (byte) inBuffer[readPos];
+      long deltaT = (long)(((inBuffer[readPos + 1] & 0xFF) << 24) | ((inBuffer[readPos + 2] & 0xFF) << 16) | ((inBuffer[readPos + 3] & 0xFF) << 8) | (inBuffer[readPos + 4] & 0xFF));
+
+      double angle = getAngle(deltaT);
+
+      println(rotor, sensorId, deltaT, angle);
+
       if (rotor == 0) {
-        
-        xAngle = ((double)deltaT / 8333.0) * 180.0;
-        //println("X: "+ xAngle);
+
+        xAngle[sensorId] = angle;
         
       } else {
-        
-        yAngle = ((double)deltaT / 8333.0) * 180.0;
-        //println("Y: "+ yAngle);
+
+        yAngle[sensorId] = angle;
         
       }
-      
     }
-    
-    //Start flags found. Reset buffer and set index to 0
-    inBuffer = new int[bufferSize];
-    bufferIndex = 0;
-    
-  } else {
-    
-    bufferIndex++;
-    
   }
-  
-  if (bufferIndex >= bufferSize) {
-    
-   bufferIndex = 0; 
-    
-  }
-  
+}
+
+double getAngle(long t) {
+
+  double angle = 0;
+
+  angle = ((double)t / SWEEP_CYCLE_CLOCK_CYCLES) * 180;
+
+  return angle;
 }
 
 int getBit(int number, int position) {
   return (number >> position) & 1;
+}
+
+void shiftArray(int[] array) {
+
+  System.arraycopy(array, 0, array, 1, array.length - 1);
 }
