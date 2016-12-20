@@ -7,6 +7,12 @@
 #define IC_1 1
 #define IC_2 2
 #define IC_3 3
+#define IC_4 4
+#define IC_5 5
+#define IC_6 6
+#define IC_7 7
+#define IC_8 8
+#define IC_9 9
 
 volatile unsigned long sensor1Start;
 volatile unsigned long sensor1Length;
@@ -22,6 +28,12 @@ LighthouseSensor ic0(IC_0);
 LighthouseSensor ic1(IC_1);
 LighthouseSensor ic2(IC_2);
 LighthouseSensor ic3(IC_3);
+LighthouseSensor ic4(IC_4);
+LighthouseSensor ic5(IC_5);
+LighthouseSensor ic6(IC_6);
+LighthouseSensor ic7(IC_7);
+LighthouseSensor ic8(IC_8);
+LighthouseSensor ic9(IC_9);
 
 void setup() {
 
@@ -32,8 +44,14 @@ void setup() {
   
   attachInterrupt(IC_0, ic0ISR, CHANGE);
   attachInterrupt(IC_1, ic1ISR, CHANGE);
-//  attachInterrupt(IC_2, ic2ISR, CHANGE);
-//  attachInterrupt(IC_3, ic3ISR, CHANGE);
+  attachInterrupt(IC_2, ic2ISR, CHANGE);
+  attachInterrupt(IC_3, ic3ISR, CHANGE);
+  attachInterrupt(IC_4, ic4ISR, CHANGE);
+  attachInterrupt(IC_5, ic5ISR, CHANGE);
+  attachInterrupt(IC_6, ic6ISR, CHANGE);
+  attachInterrupt(IC_7, ic7ISR, CHANGE);
+  attachInterrupt(IC_8, ic8ISR, CHANGE);
+  attachInterrupt(IC_9, ic9ISR, CHANGE);
 
   Serial.begin(115200);
 
@@ -73,5 +91,39 @@ void ic2ISR() {
 void ic3ISR() {
   
     pulsePosition.parsePulse(ic3);
+    
+}
+void ic4ISR() {
+  
+    pulsePosition.parsePulse(ic4);
+    
+}
+
+void ic5ISR() {
+  
+    pulsePosition.parsePulse(ic5);
+    
+}
+
+void ic6ISR() {
+  
+    pulsePosition.parsePulse(ic6);
+    
+}
+
+void ic7ISR() {
+  
+    pulsePosition.parsePulse(ic7);
+    
+}
+void ic8ISR() {
+  
+    pulsePosition.parsePulse(ic8);
+    
+}
+
+void ic9ISR() {
+  
+    pulsePosition.parsePulse(ic9);
     
 }

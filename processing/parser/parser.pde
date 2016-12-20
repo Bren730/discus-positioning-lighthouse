@@ -1,3 +1,16 @@
+import gab.opencv.*;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.MatOfPoint3f;
+import org.opencv.core.MatOfDouble;
+import org.opencv.core.Point;
+import org.opencv.core.Point3;
+import org.opencv.calib3d.Calib3d;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Simple Read
  * 
@@ -18,7 +31,7 @@ int[] inBuffer = new int[bufferSize];
 int[] flagBuffer = new int[2];
 byte bufferIndex = 0;
 byte sensor = 0;
-byte sensorCount = 4;
+byte sensorCount = 10;
 
 byte station;
 byte skip;
@@ -34,7 +47,7 @@ final double SWEEP_CYCLE_CLOCK_CYCLES = SWEEP_CYCLE_TIME * CPU_SPEED; // Amount 
 
 void setup() 
 {
-  size(800, 800);
+  size(1000, 1000);
   String portName = Serial.list()[1];
 
   myPort = new Serial(this, portName, 115200);
@@ -62,13 +75,31 @@ void draw()
         stroke(255, 0, 0);
       }
       if (i == 1) {
-        stroke(255, 255, 0);
+        stroke(255, 127, 0);
       }
       if (i == 2) {
-        stroke(0, 255, 0);
+        stroke(255, 255, 0);
       }
       if (i == 3) {
+        stroke(127, 255, 0);
+      }
+      if (i == 4) {
+        stroke(255, 255, 0);
+      }
+      if (i == 5) {
+        stroke(0, 255, 127);
+      }
+      if (i == 6) {
         stroke(0, 255, 255);
+      }
+      if (i == 7) {
+        stroke(0, 127, 255);
+      }
+      if (i == 8) {
+        stroke(0, 0, 255);
+      }
+      if (i == 9) {
+        stroke(0, 0, 127);
       }
 
       strokeWeight(10);
@@ -130,6 +161,8 @@ void parseData() {
       }
     }
   }
+  
+  solvePnp();
 }
 
 double getAngle(long t) {
@@ -139,6 +172,41 @@ double getAngle(long t) {
   angle = ((double)t / SWEEP_CYCLE_CLOCK_CYCLES) * 180;
 
   return angle;
+}
+
+void solvePnp() {
+  
+  //List<Point3> pointsList = new ArrayList();
+  //Point3 point1 = new Point3(-1, -1, 0);
+  //Point3 point2 = new Point3(1, -1, 0);
+  //Point3 point3 = new Point3(-1, 1, 0);
+  //Point3 point4 = new Point3(1, 1, 0);
+  
+  //pointsList.add(point1);
+  //pointsList.add(point2);
+  //pointsList.add(point3);
+  //pointsList.add(point4);
+  
+  //MatOfPoint3f objPoints = new MatOfPoint3f();
+  //objPoints.fromList(pointsList);
+  
+  //List<Point> pointArray = new ArrayList();
+  
+  //Point point21 = new Point(1,2);
+  //Point point22 = new Point(1,2);
+  //Point point23 = new Point(1,2);
+  //Point point24 = new Point(1,2);
+  
+  //MatOfPoint2f imgPoints = new MatOfPoint2f();
+  //imgPoints.fromList(pointArray);
+  //Mat cameraMatrix = new Mat();
+  //MatOfDouble distortionCoefficients = new MatOfDouble();
+  //Mat outputR = new Mat();
+  //Mat outputT = new Mat();
+  
+  //Calib3d.solvePnP(objPoints, imgPoints, cameraMatrix, distortionCoefficients, outputR, outputT);
+  
+  
 }
 
 int getBit(int number, int position) {
