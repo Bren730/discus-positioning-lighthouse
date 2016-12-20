@@ -8,7 +8,7 @@ class PulsePosition {
   public:
 
     // Constructor
-    PulsePosition();
+    PulsePosition(byte _sensorCount);
 
     // Definitions
 
@@ -32,6 +32,7 @@ class PulsePosition {
 #define SWEEP_CYCLE_CLOCK_CYCLES SWEEP_CYCLE_TIME * CPU_SPEED
 
     // Variables
+    byte sensorCount;
     volatile unsigned long pulseLength;
     volatile unsigned long syncPulseStart;
     volatile unsigned long syncPulseTimer;
@@ -40,7 +41,7 @@ class PulsePosition {
     volatile byte syncPulseCounter = 0;
     volatile byte meta = 0;
 
-    volatile bool sawSweep[4];
+    volatile bool sawSweep[10];
 
     volatile bool station;
     volatile bool skip;

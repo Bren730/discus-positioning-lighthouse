@@ -13,7 +13,9 @@ void printBits(byte myByte) {
   }
 }
 
-PulsePosition::PulsePosition() {
+PulsePosition::PulsePosition(byte _sensorCount) {
+
+  sensorCount = _sensorCount;
 
 }
 
@@ -46,7 +48,7 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
       if (!sawSyncPulse || ARM_DWT_CYCCNT - syncPulseStart > SWEEP_CYCLE_CLOCK_CYCLES - 10000) {
         // Only register pulseStart if it is the first sync pulse
 
-        for (byte i = 0; i < 4; i++) {
+        for (byte i = 0; i < sensorCount; i++) {
           // reset all sensors
           // sawSweep is used for reflection elimination
           sawSweep[i] = false;
@@ -99,7 +101,16 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
     if (pulse.pulseType == Pulse::PulseType::SWEEP) {
 
+      #ifdef SYNC_PULSE_DEBUG
+      Serial.println("Sensor " + String(sensor.id) + " Registered a sweep");
+      #endif
+
+      // Prevent double sweep registering due to reflections
       if(!sawSweep[sensor.id]){
+
+        #ifdef SYNC_PULSE_DEBUG
+      Serial.println("Sensor " + String(sensor.id) + " Did not see a sweep earlier");
+      #endif
 
         resetSyncPulseTimer = true;
 

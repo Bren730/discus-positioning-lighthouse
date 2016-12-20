@@ -22,7 +22,7 @@ volatile unsigned long syncPulseStart;
 bool sawSyncPulse;
 bool isXSweep;
 
-PulsePosition pulsePosition;
+PulsePosition pulsePosition(10);
 
 LighthouseSensor ic0(IC_0);
 LighthouseSensor ic1(IC_1);
