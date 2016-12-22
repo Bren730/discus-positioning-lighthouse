@@ -1,4 +1,4 @@
-import gab.opencv.*;
+import gab.opencv.*; 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint2f;
@@ -31,15 +31,18 @@ int[] inBuffer = new int[bufferSize];
 int[] flagBuffer = new int[2];
 byte bufferIndex = 0;
 byte sensor = 0;
-byte sensorCount = 10;
+byte sensorCount = 100;
 
 byte station;
 byte skip;
 byte rotor;
+byte prevRotor;
 byte data;
 
 double[] xAngle = new double[sensorCount];
 double[] yAngle = new double[sensorCount];
+boolean[] sawSweep = new boolean[sensorCount];
+long[] lastSweep = new long[sensorCount];
 
 final double CPU_SPEED = 96.0; // CPU speed in MHz
 final double SWEEP_CYCLE_TIME = 8333; // Sweep cycle time in us
@@ -55,11 +58,12 @@ void setup()
 
 void draw()
 {
+  
   clear();
 
   for (int i = 0; i < sensorCount; i++) {
 
-    if (xAngle[i] > 0) {
+    if (xAngle[i] > 0 && millis() - lastSweep[i] < 10) {
 
 
       float xRad = radians(((float)xAngle[i] - 90));
@@ -84,7 +88,7 @@ void draw()
         stroke(127, 255, 0);
       }
       if (i == 4) {
-        stroke(255, 255, 0);
+        stroke(0, 255, 0);
       }
       if (i == 5) {
         stroke(0, 255, 127);
@@ -108,11 +112,16 @@ void draw()
 }
 
 void serialEvent(Serial p) {
-
+  
+  try {
   flagBuffer[1] = flagBuffer[0];
   flagBuffer[0] = p.read();
   inBuffer[bufferIndex] = flagBuffer[0];
   bufferIndex++;
+  
+  } catch (Exception e) {
+    print(e);
+  }
 
   if (flagBuffer[0] == 255 && flagBuffer[1] == 255) {
     //println("Startflag received");
@@ -123,19 +132,27 @@ void serialEvent(Serial p) {
 
 void parseData() {
 
+  for (int i = 0; i < sensorCount; i++) {
+    
+    sawSweep[i] = false;
+    
+  }
+  
+  if (inBuffer.length > 0){
   //println("Parsing data");
   int sensorCnt = floor(bufferIndex / msgLength);
-  //println("Sensor count", sensorCnt);
+  println("Sensor count", sensorCnt);
 
   // First byte is the metadata byte holding station, skip, rotor and data values
   int meta = inBuffer[0];
 
   station = (byte)getBit(meta, 3);
   skip = (byte)getBit(meta, 2);
+  prevRotor = rotor;
   rotor = (byte)getBit(meta, 1);
   data = (byte)getBit(meta, 0);
 
-  //println(station, skip, rotor, data);
+  println(station, skip, rotor, data);
 
   if (sensorCnt > 0) {
 
@@ -147,6 +164,9 @@ void parseData() {
       long deltaT = (long)(((inBuffer[readPos + 1] & 0xFF) << 24) | ((inBuffer[readPos + 2] & 0xFF) << 16) | ((inBuffer[readPos + 3] & 0xFF) << 8) | (inBuffer[readPos + 4] & 0xFF));
 
       double angle = getAngle(deltaT);
+      
+      sawSweep[sensorId] = true;
+      lastSweep[sensorId] = millis();
 
       println(rotor, sensorId, deltaT, angle);
 
@@ -163,6 +183,8 @@ void parseData() {
   }
   
   solvePnp();
+  
+  }
 }
 
 double getAngle(long t) {
