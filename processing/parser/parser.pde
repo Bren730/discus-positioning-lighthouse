@@ -53,12 +53,17 @@ double prevXSweep;
 
 OpenCV opencv;
 
+final int res = 2000;
+final int halfRes = res / 2;
+
 void setup() 
 {
   size(1000, 1000);
-  String portName = Serial.list()[1];
+  surface.setSize(res, res);
   
   println(Serial.list());
+  
+  String portName = Serial.list()[1];
 
   myPort = new Serial(this, portName, 115200);
   
@@ -74,11 +79,11 @@ void draw()
     if (xAngle[i] > 0 && millis() - lastSweep[i] < 50) {
 
 
-      float xRad = radians(((float)xAngle[i] - 90));
+      float xRad = -1 * radians(((float)xAngle[i] - 90));
       float yRad = -1 * radians(((float)yAngle[i] - 90));
 
-      float xPos = 400 + xRad * 400;
-      float yPos = 400 + yRad * 400;
+      float xPos = halfRes + xRad * halfRes;
+      float yPos = halfRes + yRad * halfRes;
 
       //println(xPos, yPos);
       point(xPos, yPos);
@@ -200,7 +205,7 @@ void parseData() {
       println(e);
     }
 
-    //solvePnp();
+    solvePnp();
   }
 }
 
