@@ -5,7 +5,7 @@ private:
 
 public:
 
-	enum PulseType {SYNC_PULSE, SWEEP, OUTLIER};
+	enum PulseType {SYNC_PULSE, SWEEP, OUTLIER, PULSE_START};
 
 	// Constructor
 	Pulse(bool _skip, bool _rotor, bool _data, PulseType _pulseType);

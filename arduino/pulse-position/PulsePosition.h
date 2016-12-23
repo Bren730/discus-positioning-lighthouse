@@ -8,7 +8,7 @@ class PulsePosition {
   public:
 
     // Constructor
-    PulsePosition(byte _sensorCount);
+    PulsePosition();
 
     // Definitions
 
@@ -33,6 +33,7 @@ class PulsePosition {
 
     // Variables
     byte sensorCount;
+    byte syncPulseSensor;
     volatile unsigned long pulseLength;
     volatile unsigned long syncPulseStart;
     volatile unsigned long syncPulseTimer;
@@ -41,7 +42,7 @@ class PulsePosition {
     volatile byte syncPulseCounter = 0;
     volatile byte meta = 0;
 
-    volatile bool sawSweep[10];
+    volatile bool sawSweep[34];
 
     volatile bool station;
     volatile bool skip;
@@ -49,8 +50,9 @@ class PulsePosition {
     volatile bool data;
 
     // Functions
-    void begin();
-    void parsePulse(LighthouseSensor& sensor);
+    void begin(byte _sensorCount, byte _syncPulseSensor);
+    Pulse parsePulse(LighthouseSensor& sensor);
+    void writePulseTime(LighthouseSensor& sensor);
     Pulse parsePulseType(unsigned long pulseLength);
 
 };

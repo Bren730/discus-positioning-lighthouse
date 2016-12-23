@@ -63,7 +63,7 @@ void draw()
 
   for (int i = 0; i < sensorCount; i++) {
 
-    if (xAngle[i] > 0 && millis() - lastSweep[i] < 10) {
+    if (xAngle[i] > 0 && millis() - lastSweep[i] < 50) {
 
 
       float xRad = radians(((float)xAngle[i] - 90));

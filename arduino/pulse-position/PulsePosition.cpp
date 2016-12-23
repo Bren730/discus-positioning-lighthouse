@@ -13,26 +13,30 @@ void printBits(byte myByte) {
   }
 }
 
-PulsePosition::PulsePosition(byte _sensorCount) {
+PulsePosition::PulsePosition() {
+
+}
+
+void PulsePosition::begin(byte _sensorCount, byte _syncPulseSensor) {
 
   sensorCount = _sensorCount;
-
+  syncPulseSensor = _syncPulseSensor;
+  
 }
 
-void PulsePosition::begin() {
-
-}
-
-void PulsePosition::parsePulse(LighthouseSensor& sensor) {
+Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
   // Disable interrupts
-  cli();
+//  cli();
 
   if (digitalReadFast(sensor.pin) == HIGH) {
     // This is the rising edge of the pulse
     // Record start time of pulse as CPU Cycle count
     // Overflows every 44.73s
     sensor.pulseStart = ARM_DWT_CYCCNT;
+    Pulse pulse(0,0,0, Pulse::PulseType::PULSE_START);
+
+    return pulse;
 
   } else {
     // This is the falling edge of the pulse
@@ -101,16 +105,8 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
     if (pulse.pulseType == Pulse::PulseType::SWEEP) {
 
-      #ifdef SYNC_PULSE_DEBUG
-      Serial.println("Sensor " + String(sensor.id) + " Registered a sweep");
-      #endif
-
       // Prevent double sweep registering due to reflections
       if(!sawSweep[sensor.id]){
-
-        #ifdef SYNC_PULSE_DEBUG
-      Serial.println("Sensor " + String(sensor.id) + " Did not see a sweep earlier");
-      #endif
 
         resetSyncPulseTimer = true;
 
@@ -129,7 +125,7 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
         sensor.deltaT = ARM_DWT_CYCCNT - syncPulseStart;
         // Serial.println(String(sensor.deltaT) + ", " + String(sensor.skip) + ", " + String(sensor.rotor) + ", " + String(sensor.data));
 
-#ifndef HUMAN_READABLE
+#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
 
         Serial.write(sensor.id);
         Serial.write((sensor.deltaT >> 24));
@@ -159,12 +155,49 @@ void PulsePosition::parsePulse(LighthouseSensor& sensor) {
       }
 
     }
+    
+    return pulse;
 
   }
 
-  // Enable interrupts again
-  sei();
+  
 
+  // Enable interrupts again
+//  sei();
+
+}
+
+void PulsePosition::writePulseTime(LighthouseSensor& sensor) {
+
+//  cli();
+
+  // Prevent double sweep registering due to reflections
+      if(!sawSweep[sensor.id]){
+
+        sensor.deltaT = ARM_DWT_CYCCNT - syncPulseStart;
+        // Serial.println(String(sensor.deltaT) + ", " + String(sensor.skip) + ", " + String(sensor.rotor) + ", " + String(sensor.data));
+
+#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+
+        Serial.write(sensor.id);
+        Serial.write((sensor.deltaT >> 24));
+        Serial.write((sensor.deltaT >> 16));
+        Serial.write((sensor.deltaT >> 8));
+        Serial.write((sensor.deltaT & 0x00FF));
+#endif
+
+#ifdef HUMAN_READABLE
+        Serial.print(String(sensor.id) + ", ");
+        Serial.print(String(sensor.deltaT) + ", ");
+        Serial.println();
+#endif
+
+        sawSweep[sensor.id] = true;
+        
+      }
+
+//      sei();
+  
 }
 
 Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
@@ -270,7 +303,7 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   // Pulse does not fit any type, cast as outlier
 #ifdef SYNC_PULSE_DEBUG
-  Serial.println("outlier, " + String(pulseLength));
+//  Serial.println("outlier, " + String(pulseLength));
 #endif
 
   Pulse pulse(0, 0, 0, Pulse::PulseType::OUTLIER);
