@@ -11,6 +11,7 @@ import org.opencv.calib3d.Calib3d;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.text.DecimalFormat;
 /**
  * Simple Read
  * 
@@ -48,17 +49,24 @@ final double CPU_SPEED = 96.0; // CPU speed in MHz
 final double SWEEP_CYCLE_TIME = 8333; // Sweep cycle time in us
 final double SWEEP_CYCLE_CLOCK_CYCLES = SWEEP_CYCLE_TIME * CPU_SPEED; // Amount of CPU cycles per sweep
 
+double prevXSweep;
+
+OpenCV opencv;
+
 void setup() 
 {
   size(1000, 1000);
   String portName = Serial.list()[1];
+  
+  println(Serial.list());
 
   myPort = new Serial(this, portName, 115200);
+  
 }
 
 void draw()
 {
-  
+
   clear();
 
   for (int i = 0; i < sensorCount; i++) {
@@ -112,14 +120,14 @@ void draw()
 }
 
 void serialEvent(Serial p) {
-  
+
   try {
-  flagBuffer[1] = flagBuffer[0];
-  flagBuffer[0] = p.read();
-  inBuffer[bufferIndex] = flagBuffer[0];
-  bufferIndex++;
-  
-  } catch (Exception e) {
+    flagBuffer[1] = flagBuffer[0];
+    flagBuffer[0] = p.read();
+    inBuffer[bufferIndex] = flagBuffer[0];
+    bufferIndex++;
+  } 
+  catch (Exception e) {
     print(e);
   }
 
@@ -133,57 +141,66 @@ void serialEvent(Serial p) {
 void parseData() {
 
   for (int i = 0; i < sensorCount; i++) {
-    
+
     sawSweep[i] = false;
-    
   }
-  
-  if (inBuffer.length > 0){
-  //println("Parsing data");
-  int sensorCnt = floor(bufferIndex / msgLength);
-  println("Sensor count", sensorCnt);
 
-  // First byte is the metadata byte holding station, skip, rotor and data values
-  int meta = inBuffer[0];
+  if (inBuffer.length > 0) {
+    //println("Parsing data");
+    int sensorCnt = floor(bufferIndex / msgLength);
+    println("Sensor count", sensorCnt);
 
-  station = (byte)getBit(meta, 3);
-  skip = (byte)getBit(meta, 2);
-  prevRotor = rotor;
-  rotor = (byte)getBit(meta, 1);
-  data = (byte)getBit(meta, 0);
+    // First byte is the metadata byte holding station, skip, rotor and data values
+    int meta = inBuffer[0];
 
-  println(station, skip, rotor, data);
+    station = (byte)getBit(meta, 3);
+    skip = (byte)getBit(meta, 2);
+    prevRotor = rotor;
+    rotor = (byte)getBit(meta, 1);
+    data = (byte)getBit(meta, 0);
 
-  if (sensorCnt > 0) {
+    if (rotor == 0) {
 
-    for (int i = 0; i < sensorCnt; i++) {
-
-      int readPos = (i * msgLength) + 1;
-
-      byte sensorId = (byte) inBuffer[readPos];
-      long deltaT = (long)(((inBuffer[readPos + 1] & 0xFF) << 24) | ((inBuffer[readPos + 2] & 0xFF) << 16) | ((inBuffer[readPos + 3] & 0xFF) << 8) | (inBuffer[readPos + 4] & 0xFF));
-
-      double angle = getAngle(deltaT);
-      
-      sawSweep[sensorId] = true;
-      lastSweep[sensorId] = millis();
-
-      println(rotor, sensorId, deltaT, angle);
-
-      if (rotor == 0) {
-
-        xAngle[sensorId] = angle;
-        
-      } else {
-
-        yAngle[sensorId] = angle;
-        
-      }
+      DecimalFormat df = new DecimalFormat("#.00");
+      println("FPS: " + df.format( (1000 / (millis() - prevXSweep))) );
+      prevXSweep = millis();
     }
-  }
-  
-  solvePnp();
-  
+
+    println(station, skip, rotor, data);
+
+    try {
+      if (sensorCnt > 0) {
+
+        for (int i = 0; i < sensorCnt; i++) {
+
+          int readPos = (i * msgLength) + 1;
+
+          byte sensorId = (byte) inBuffer[readPos];
+          long deltaT = (long)(((inBuffer[readPos + 1] & 0xFF) << 24) | ((inBuffer[readPos + 2] & 0xFF) << 16) | ((inBuffer[readPos + 3] & 0xFF) << 8) | (inBuffer[readPos + 4] & 0xFF));
+
+          double angle = getAngle(deltaT);
+
+          sawSweep[sensorId] = true;
+          lastSweep[sensorId] = millis();
+
+          //println(rotor, sensorId, deltaT, angle);
+
+          if (rotor == 0) {
+
+            xAngle[sensorId] = angle;
+          } else {
+
+            yAngle[sensorId] = angle;
+          }
+        }
+      }
+    } 
+    catch (Exception e) {
+
+      println(e);
+    }
+
+    //solvePnp();
   }
 }
 
@@ -198,37 +215,35 @@ double getAngle(long t) {
 
 void solvePnp() {
   
-  //List<Point3> pointsList = new ArrayList();
-  //Point3 point1 = new Point3(-1, -1, 0);
-  //Point3 point2 = new Point3(1, -1, 0);
-  //Point3 point3 = new Point3(-1, 1, 0);
-  //Point3 point4 = new Point3(1, 1, 0);
-  
-  //pointsList.add(point1);
-  //pointsList.add(point2);
-  //pointsList.add(point3);
-  //pointsList.add(point4);
-  
-  //MatOfPoint3f objPoints = new MatOfPoint3f();
-  //objPoints.fromList(pointsList);
-  
-  //List<Point> pointArray = new ArrayList();
-  
-  //Point point21 = new Point(1,2);
-  //Point point22 = new Point(1,2);
-  //Point point23 = new Point(1,2);
-  //Point point24 = new Point(1,2);
-  
-  //MatOfPoint2f imgPoints = new MatOfPoint2f();
-  //imgPoints.fromList(pointArray);
-  //Mat cameraMatrix = new Mat();
-  //MatOfDouble distortionCoefficients = new MatOfDouble();
-  //Mat outputR = new Mat();
-  //Mat outputT = new Mat();
-  
-  //Calib3d.solvePnP(objPoints, imgPoints, cameraMatrix, distortionCoefficients, outputR, outputT);
-  
-  
+  List<Point3> pointsList = new ArrayList();
+  Point3 point1 = new Point3(-1, -1, 0);
+  Point3 point2 = new Point3(1, -1, 0);
+  Point3 point3 = new Point3(-1, 1, 0);
+  Point3 point4 = new Point3(1, 1, 0);
+
+  pointsList.add(point1);
+  pointsList.add(point2);
+  pointsList.add(point3);
+  pointsList.add(point4);
+
+  MatOfPoint3f objPoints = new MatOfPoint3f();
+  objPoints.fromList(pointsList);
+
+  List<Point> pointArray = new ArrayList();
+
+  Point point21 = new Point(1, 2);
+  Point point22 = new Point(1, 2);
+  Point point23 = new Point(1, 2);
+  Point point24 = new Point(1, 2);
+
+  MatOfPoint2f imgPoints = new MatOfPoint2f();
+  imgPoints.fromList(pointArray);
+  Mat cameraMatrix = new Mat();
+  MatOfDouble distortionCoefficients = new MatOfDouble();
+  Mat outputR = new Mat();
+  Mat outputT = new Mat();
+
+  Calib3d.solvePnP(objPoints, imgPoints, cameraMatrix, distortionCoefficients, outputR, outputT);
 }
 
 int getBit(int number, int position) {
