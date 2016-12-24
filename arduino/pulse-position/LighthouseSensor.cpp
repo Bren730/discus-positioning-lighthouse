@@ -1,6 +1,10 @@
 #include "LighthouseSensor.h"
 #include <Arduino.h>
 
+LighthouseSensor::LighthouseSensor() {
+  
+}
+
 LighthouseSensor::LighthouseSensor(unsigned char _pin) {
 
   pin = _pin;

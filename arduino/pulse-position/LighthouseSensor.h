@@ -8,7 +8,10 @@ class LighthouseSensor {
 
   public:
 
-    // Constructor
+  // Empty constructor
+  LighthouseSensor();
+  
+    // Constructor with pin
     LighthouseSensor(unsigned char _pin);
 
     // Variables
@@ -18,6 +21,7 @@ class LighthouseSensor {
     volatile unsigned long deltaT; // Max Lighthouse cycle length is 799968 clock cycles
 
     volatile byte id;
+    volatile bool sawSweep;
 
     // Definitions
 

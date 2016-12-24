@@ -14,14 +14,6 @@
 #define IC_8 8
 #define IC_9 9
 
-volatile unsigned long sensor1Start;
-volatile unsigned long sensor1Length;
-
-volatile unsigned long syncPulseStart;
-
-bool sawSyncPulse;
-bool isXSweep;
-
 PulsePosition pulsePosition;
 
 LighthouseSensor ic0(IC_0);
@@ -37,15 +29,18 @@ LighthouseSensor ic9(IC_9);
 
 IntervalTimer cycleTimer;
 
+static byte sensorCount = 10;
+static byte syncPulseSensor = 0;
+
 void setup() {
 
   // Enable clock cycle counter
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
   ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
 
-  pulsePosition.begin(10, 0);
+  pulsePosition.begin(sensorCount, syncPulseSensor);
 
-  attachInterrupt(IC_0, ic0ISR, CHANGE);
+  attachInterrupt(syncPulseSensor, ic0ISR, CHANGE);
   //  attachInterrupt(IC_1, ic1ISR, CHANGE);
   //  attachInterrupt(IC_2, ic2ISR, CHANGE);
   //  attachInterrupt(IC_3, ic3ISR, CHANGE);
@@ -75,16 +70,20 @@ void loop() {
 
 void ic0ISR() {
 
-  Pulse pulse = pulsePosition.parsePulse(ic0);
-  
+  Pulse pulse = pulsePosition.parsePulse(pulsePosition.sensors[syncPulseSensor]);
+
   if (pulse.pulseType == Pulse::PulseType::SYNC_PULSE) {
+
+    //    Serial.println("Sync pulse!!!");
+    pulsePosition.writeData();
 
     // We captured a sync pulse, attatch interrupts for all sensors
     attachInterrupts();
 
     // Set a timer to detach interrupts just before the end of a sweep
     // This ensures only the syncPulseSensor captures the sync pulse
-    cycleTimer.begin(detachInterrupts, 8200);
+    //    Serial.println("Setting timer")
+    //    cycleTimer.begin(detachInterrupts, 8333);
 
   }
 
@@ -92,75 +91,77 @@ void ic0ISR() {
 
 void ic1ISR() {
 
-  pulsePosition.writePulseTime(ic1);
+  pulsePosition.writePulseTime(pulsePosition.sensors[1]);
 
 }
 
 void ic2ISR() {
 
-  pulsePosition.writePulseTime(ic2);
+  pulsePosition.writePulseTime(pulsePosition.sensors[2]);
 
 }
 
 void ic3ISR() {
 
-  pulsePosition.writePulseTime(ic3);
+  pulsePosition.writePulseTime(pulsePosition.sensors[3]);
 
 }
 void ic4ISR() {
 
-  pulsePosition.writePulseTime(ic4);
+  pulsePosition.writePulseTime(pulsePosition.sensors[4]);
 
 }
 
 void ic5ISR() {
 
-  pulsePosition.writePulseTime(ic5);
+  pulsePosition.writePulseTime(pulsePosition.sensors[5]);
 
 }
 
 void ic6ISR() {
 
-  pulsePosition.writePulseTime(ic6);
+  pulsePosition.writePulseTime(pulsePosition.sensors[6]);
 
 }
 
 void ic7ISR() {
 
-  pulsePosition.writePulseTime(ic7);
+  pulsePosition.writePulseTime(pulsePosition.sensors[7]);
 
 }
 void ic8ISR() {
 
-  pulsePosition.writePulseTime(ic8);
+  pulsePosition.writePulseTime(pulsePosition.sensors[8]);
 
 }
 
 void ic9ISR() {
 
-  pulsePosition.writePulseTime(ic9);
+  pulsePosition.writePulseTime(pulsePosition.sensors[9]);
 
 }
 
 void attachInterrupts() {
 
-//  Serial.println("Attaching interrupts");
+  //  Serial.println("Attaching interrupts");
 
-  attachInterrupt(IC_1, ic1ISR, RISING);
-  attachInterrupt(IC_2, ic2ISR, RISING);
-  attachInterrupt(IC_3, ic3ISR, RISING);
-  attachInterrupt(IC_4, ic4ISR, RISING);
-  attachInterrupt(IC_5, ic5ISR, RISING);
-  attachInterrupt(IC_6, ic6ISR, RISING);
-  attachInterrupt(IC_7, ic7ISR, RISING);
-  attachInterrupt(IC_8, ic8ISR, RISING);
-  attachInterrupt(IC_9, ic9ISR, RISING);
+  attachInterrupt(1, ic1ISR, RISING);
+  attachInterrupt(2, ic2ISR, RISING);
+  attachInterrupt(3, ic3ISR, RISING);
+  attachInterrupt(4, ic4ISR, RISING);
+  attachInterrupt(5, ic5ISR, RISING);
+  attachInterrupt(6, ic6ISR, RISING);
+  attachInterrupt(7, ic7ISR, RISING);
+  attachInterrupt(8, ic8ISR, RISING);
+  attachInterrupt(9, ic9ISR, RISING);
 
 }
 
 void detachInterrupts() {
-
-//  Serial.println("Detaching interrupts");
+  pulsePosition.writeData();
+  Serial.println("Detaching interrupts");
+  cycleTimer.end();
+  pulsePosition.sawSyncPulse = false;
 
   detachInterrupt(1);
   detachInterrupt(2);

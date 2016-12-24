@@ -205,7 +205,7 @@ void parseData() {
       println(e);
     }
 
-    solvePnp();
+    //solvePnp();
   }
 }
 

@@ -1,6 +1,8 @@
 #include "Pulse.h"
 #include <Arduino.h>
 
+Pulse::Pulse() {}
+
 Pulse::Pulse(bool _skip, bool _rotor, bool _data, PulseType _pulseType) {
 
 	skip = _skip;

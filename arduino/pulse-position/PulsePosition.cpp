@@ -21,20 +21,27 @@ void PulsePosition::begin(byte _sensorCount, byte _syncPulseSensor) {
 
   sensorCount = _sensorCount;
   syncPulseSensor = _syncPulseSensor;
-  
+
+  for (byte i = 0; i < sensorCount; i++) {
+
+    LighthouseSensor sensor(i);
+    sensors[i] = sensor;
+
+  }
+
 }
 
 Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
   // Disable interrupts
-//  cli();
+  //  cli();
 
   if (digitalReadFast(sensor.pin) == HIGH) {
     // This is the rising edge of the pulse
     // Record start time of pulse as CPU Cycle count
     // Overflows every 44.73s
     sensor.pulseStart = ARM_DWT_CYCCNT;
-    Pulse pulse(0,0,0, Pulse::PulseType::PULSE_START);
+    Pulse pulse(0, 0, 0, Pulse::PulseType::PULSE_START);
 
     return pulse;
 
@@ -46,51 +53,11 @@ Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
     Pulse pulse = parsePulseType(sensor.pulseLength);
 
     if (pulse.pulseType == Pulse::PulseType::SYNC_PULSE) {
+      
+      prevSyncPulseStart = syncPulseStart;
+      syncPulseStart = sensor.pulseStart;
 
-      // If we did not see a sync pulse, or if a single sweep cycle has elapsed
-      // Write out the start flags and sync pulse metadata
-      if (!sawSyncPulse || ARM_DWT_CYCCNT - syncPulseStart > SWEEP_CYCLE_CLOCK_CYCLES - 10000) {
-        // Only register pulseStart if it is the first sync pulse
-
-        for (byte i = 0; i < sensorCount; i++) {
-          // reset all sensors
-          // sawSweep is used for reflection elimination
-          sawSweep[i] = false;
-          
-        }
-        
-        station = pulse.station;
-        skip = pulse.skip;
-        rotor = pulse.rotor;
-        data = pulse.data;
-        meta = 0;
-
-        // Construct meta byte
-        (station) ? bitSet(meta, 3) : false;
-        (skip) ? bitSet(meta, 2) : false;
-        (rotor) ? bitSet(meta, 1) : false;
-        (data) ? bitSet(meta, 0) : false;
-
-#ifndef HUMAN_READABLE
-        Serial.write(0xff);
-        Serial.write(0xff);
-        Serial.write(meta);
-#endif
-
-#ifdef HUMAN_READABLE
-        Serial.println();
-        Serial.println("Sync pulse, meta:");
-        printBits(meta);
-        Serial.println();
-        Serial.println();
-        Serial.println("Sensors:");
-#endif
-
-        syncPulseStart = sensor.pulseStart;
-
-        sawSyncPulse = true;
-
-      }
+      sawSyncPulse = true;
 
       syncPulseCounter++;
 
@@ -101,50 +68,35 @@ Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
       }
 
+      lastSyncPulse = pulse;
+      
     }
 
     if (pulse.pulseType == Pulse::PulseType::SWEEP) {
 
       // Prevent double sweep registering due to reflections
-      if(!sawSweep[sensor.id]){
+      if (!sensor.sawSweep) {
 
         resetSyncPulseTimer = true;
 
-      // Check if the pulse falls within one sweep cycle time
-      // And check if we saw a sync pulse before it
-      if (ARM_DWT_CYCCNT - syncPulseStart < SWEEP_CYCLE_CLOCK_CYCLES - 10000 && sawSyncPulse) {
+        // Check if the pulse falls within one sweep cycle time
+        // And check if we saw a sync pulse before it
+        if (ARM_DWT_CYCCNT - syncPulseStart < SWEEP_CYCLE_CLOCK_CYCLES - 10000 && sawSyncPulse) {
 
-        // Assign the base station
-        // If we saw more than 1 sync pulse, it's basestation b
-        // todo: Improve base station detection
-        (syncPulseCounter > 1) ? station = false : station = true;
+          // Assign the base station
+          // If we saw more than 1 sync pulse, it's basestation b
+          // todo: Improve base station detection
+          (syncPulseCounter > 1) ? station = false : station = true;
 
-        // Sweep registered, reset sync pulse counter
-        syncPulseCounter = 0;
+          // Sweep registered, reset sync pulse counter
+          syncPulseCounter = 0;
 
-        sensor.deltaT = ARM_DWT_CYCCNT - syncPulseStart;
-        // Serial.println(String(sensor.deltaT) + ", " + String(sensor.skip) + ", " + String(sensor.rotor) + ", " + String(sensor.data));
+          sensor.deltaT = ARM_DWT_CYCCNT - syncPulseStart;
+          // Serial.println(String(sensor.deltaT) + ", " + String(sensor.skip) + ", " + String(sensor.rotor) + ", " + String(sensor.data));
 
-#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+          sensor.sawSweep = true;
 
-        Serial.write(sensor.id);
-        Serial.write((sensor.deltaT >> 24));
-        Serial.write((sensor.deltaT >> 16));
-        Serial.write((sensor.deltaT >> 8));
-        Serial.write((sensor.deltaT & 0x00FF));
-#endif
-
-#ifdef HUMAN_READABLE
-        Serial.print(String(sensor.id) + ", ");
-        Serial.print(String(sensor.deltaT) + ", ");
-        Serial.println();
-#endif
-
-        sawSweep[sensor.id] = true;
-        
-      }
-
-      
+        }
 
       } else {
 
@@ -155,52 +107,54 @@ Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
       }
 
     }
-    
+
     return pulse;
 
   }
 
-  
+
 
   // Enable interrupts again
-//  sei();
+  //  sei();
 
 }
 
 void PulsePosition::writePulseTime(LighthouseSensor& sensor) {
 
-//  cli();
+  //  cli();
 
   // Prevent double sweep registering due to reflections
-      if(!sawSweep[sensor.id]){
+  if (!sensor.sawSweep) {
 
-        sensor.deltaT = ARM_DWT_CYCCNT - syncPulseStart;
-        // Serial.println(String(sensor.deltaT) + ", " + String(sensor.skip) + ", " + String(sensor.rotor) + ", " + String(sensor.data));
+    sensor.deltaT = ARM_DWT_CYCCNT - syncPulseStart;
+    // Serial.println(String(sensor.deltaT) + ", " + String(sensor.skip) + ", " + String(sensor.rotor) + ", " + String(sensor.data));
 
-#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+    //#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+    //
+    //    Serial.write(sensor.id);
+    //    Serial.write((sensor.deltaT >> 24));
+    //    Serial.write((sensor.deltaT >> 16));
+    //    Serial.write((sensor.deltaT >> 8));
+    //    Serial.write((sensor.deltaT & 0x00FF));
+    //#endif
+    //
+    //#ifdef HUMAN_READABLE
+    //    Serial.print(String(sensor.id) + ", ");
+    //    Serial.print(String(sensor.deltaT) + ", ");
+    //    Serial.println();
+    //#endif
 
-        Serial.write(sensor.id);
-        Serial.write((sensor.deltaT >> 24));
-        Serial.write((sensor.deltaT >> 16));
-        Serial.write((sensor.deltaT >> 8));
-        Serial.write((sensor.deltaT & 0x00FF));
-#endif
+    sensor.sawSweep = true;
 
-#ifdef HUMAN_READABLE
-        Serial.print(String(sensor.id) + ", ");
-        Serial.print(String(sensor.deltaT) + ", ");
-        Serial.println();
-#endif
+  }
 
-        sawSweep[sensor.id] = true;
-        
-      }
+  //      sei();
 
-//      sei();
-  
 }
 
 Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
+
+  //  Serial.println(pulseLength);
 
   if (pulseLength >= S0R0D0 - PULSE_CHANNEL_WIDTH && pulseLength < S0R0D0 + PULSE_CHANNEL_WIDTH) {
 
@@ -303,10 +257,69 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
   // Pulse does not fit any type, cast as outlier
 #ifdef SYNC_PULSE_DEBUG
-//  Serial.println("outlier, " + String(pulseLength));
+  //  Serial.println("outlier, " + String(pulseLength));
 #endif
 
   Pulse pulse(0, 0, 0, Pulse::PulseType::OUTLIER);
   return pulse;
 
 }
+
+void PulsePosition::writeData() {
+
+  station = lastSyncPulse.station;
+  skip = lastSyncPulse.skip;
+  rotor = lastSyncPulse.rotor;
+  data = lastSyncPulse.data;
+  meta = 0;
+
+  // Construct meta byte
+  (station) ? bitSet(meta, 3) : false;
+  (skip) ? bitSet(meta, 2) : false;
+  (rotor) ? bitSet(meta, 1) : false;
+  (data) ? bitSet(meta, 0) : false;
+
+#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+  Serial.write(0xff);
+  Serial.write(0xff);
+  Serial.write(meta);
+#endif
+
+#ifdef HUMAN_READABLE
+  Serial.println();
+  Serial.println("Sync pulse, meta:");
+  printBits(meta);
+  Serial.println();
+  Serial.println();
+  Serial.println("Sensors:");
+#endif
+
+  for (byte i = 0; i < sensorCount; i++) {
+
+    if (sensors[i].sawSweep) {
+#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+
+      Serial.write(sensors[i].id);
+      Serial.write((sensors[i].deltaT >> 24));
+      Serial.write((sensors[i].deltaT >> 16));
+      Serial.write((sensors[i].deltaT >> 8));
+      Serial.write((sensors[i].deltaT & 0x00FF));
+#endif
+
+#ifdef HUMAN_READABLE
+      Serial.print(String(sensors[i].id) + ", ");
+      Serial.print(String(sensors[i].deltaT) + ", ");
+      Serial.println();
+#endif
+    }
+  }
+
+        for (byte i = 0; i < sensorCount; i++) {
+        // reset all sensors
+        // sawSweep is used for reflection elimination
+        sensors[i].sawSweep = false;
+
+      }
+
+}
+
