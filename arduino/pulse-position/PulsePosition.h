@@ -42,7 +42,8 @@ class PulsePosition {
     volatile bool resetSyncPulseTimer = true;
     volatile byte syncPulseCounter = 0;
     volatile byte meta = 0;
-    Pulse lastSyncPulse;
+    Pulse syncPulse;
+    Pulse prevSyncPulse;
 
     LighthouseSensor sensors[34];
 

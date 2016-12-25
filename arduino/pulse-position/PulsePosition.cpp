@@ -53,6 +53,9 @@ Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
     Pulse pulse = parsePulseType(sensor.pulseLength);
 
     if (pulse.pulseType == Pulse::PulseType::SYNC_PULSE) {
+
+      prevSyncPulse = syncPulse;
+      syncPulse = pulse;
       
       prevSyncPulseStart = syncPulseStart;
       syncPulseStart = sensor.pulseStart;
@@ -68,7 +71,7 @@ Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
       }
 
-      lastSyncPulse = pulse;
+      
       
     }
 
@@ -267,10 +270,10 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
 void PulsePosition::writeData() {
 
-  station = lastSyncPulse.station;
-  skip = lastSyncPulse.skip;
-  rotor = lastSyncPulse.rotor;
-  data = lastSyncPulse.data;
+  station = prevSyncPulse.station;
+  skip = prevSyncPulse.skip;
+  rotor = prevSyncPulse.rotor;
+  data = prevSyncPulse.data;
   meta = 0;
 
   // Construct meta byte

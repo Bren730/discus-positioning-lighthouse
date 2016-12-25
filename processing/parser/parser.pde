@@ -53,7 +53,7 @@ double prevXSweep;
 
 OpenCV opencv;
 
-final int res = 2000;
+final int res = 1000;
 final int halfRes = res / 2;
 
 void setup() 

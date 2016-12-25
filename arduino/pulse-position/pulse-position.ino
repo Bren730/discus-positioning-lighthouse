@@ -158,7 +158,7 @@ void attachInterrupts() {
 }
 
 void detachInterrupts() {
-  pulsePosition.writeData();
+  //  pulsePosition.writeData();
   Serial.println("Detaching interrupts");
   cycleTimer.end();
   pulsePosition.sawSyncPulse = false;
