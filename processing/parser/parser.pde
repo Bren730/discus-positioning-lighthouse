@@ -63,7 +63,7 @@ void setup()
   
   println(Serial.list());
   
-  String portName = Serial.list()[1];
+  String portName = Serial.list()[2];
 
   myPort = new Serial(this, portName, 115200);
   
@@ -79,7 +79,7 @@ void draw()
     if (xAngle[i] > 0 && millis() - lastSweep[i] < 50) {
 
 
-      float xRad = -1 * radians(((float)xAngle[i] - 90));
+      float xRad = radians(((float)xAngle[i] - 90));
       float yRad = -1 * radians(((float)yAngle[i] - 90));
 
       float xPos = halfRes + xRad * halfRes;
@@ -193,9 +193,11 @@ void parseData() {
           if (rotor == 0) {
 
             xAngle[sensorId] = angle;
+            
           } else {
 
             yAngle[sensorId] = angle;
+            
           }
         }
       }

@@ -1,6 +1,8 @@
 //#define SYNC_PULSE_DEBUG
 
 #include "PulsePosition.h"
+#include <SPI.h>
+#include "Adafruit_BLE_UART.h"
 
 // Teensy 3.2 can run interrupts on pins 0-23 (exposed) and 24-33 (underside)
 #define IC_0 0
@@ -13,6 +15,12 @@
 #define IC_7 7
 #define IC_8 8
 #define IC_9 9
+
+// Bluetooth configuration
+#define ADAFRUITBLE_REQ 10
+#define ADAFRUITBLE_RDY 15
+#define ADAFRUITBLE_RST 14
+Adafruit_BLE_UART uart = Adafruit_BLE_UART(ADAFRUITBLE_REQ, ADAFRUITBLE_RDY, ADAFRUITBLE_RST);
 
 PulsePosition pulsePosition;
 
@@ -53,6 +61,16 @@ void setup() {
 
   Serial.begin(115200);
 
+  // Set alternate SPI pins
+  SPI.setMOSI(11);
+  SPI.setMISO(12);
+  SPI.setSCK(13);
+
+  uart.setRXcallback(rxCallback);
+  uart.setACIcallback(aciCallback);
+  uart.setDeviceName("ArcReac"); /* 7 characters max! */
+  uart.begin();
+
   delay(2000);
 
   Serial.println("starting input capture");
@@ -64,7 +82,7 @@ void setup() {
 }
 
 void loop() {
-
+  uart.pollACI();
 
 }
 
@@ -173,5 +191,43 @@ void detachInterrupts() {
   detachInterrupt(8);
   detachInterrupt(9);
 
+}
+
+void aciCallback(aci_evt_opcode_t event)
+{
+  switch (event)
+  {
+    case ACI_EVT_DEVICE_STARTED:
+//      Serial.println(F("Advertising started"));
+      break;
+    case ACI_EVT_CONNECTED:
+//      Serial.println(F("Connected!"));
+      break;
+    case ACI_EVT_DISCONNECTED:
+//      Serial.println(F("Disconnected or advertising timed out"));
+      break;
+    default:
+      break;
+  }
+}
+
+void rxCallback(uint8_t *buffer, uint8_t len)
+{
+  //  Serial.print(F("Received "));
+  //  Serial.print(len);
+  //  Serial.print(F(" bytes: "));
+  for (int i = 0; i < len; i++)
+    //   Serial.print((char)buffer[i]);
+
+    //  Serial.print(F(" ["));
+
+    for (int i = 0; i < len; i++)
+    {
+//      Serial.print(" 0x"); Serial.print((char)buffer[i], HEX);
+    }
+//  Serial.println(F(" ]"));
+
+  /* Echo the same data back! */
+  uart.write(buffer, len);
 }
 
