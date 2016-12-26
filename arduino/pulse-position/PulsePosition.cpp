@@ -56,7 +56,7 @@ Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
       prevSyncPulse = syncPulse;
       syncPulse = pulse;
-      
+
       prevSyncPulseStart = syncPulseStart;
       syncPulseStart = sensor.pulseStart;
 
@@ -71,8 +71,8 @@ Pulse PulsePosition::parsePulse(LighthouseSensor& sensor) {
 
       }
 
-      
-      
+
+
     }
 
     if (pulse.pulseType == Pulse::PulseType::SWEEP) {
@@ -317,12 +317,65 @@ void PulsePosition::writeData() {
     }
   }
 
-        for (byte i = 0; i < sensorCount; i++) {
-        // reset all sensors
-        // sawSweep is used for reflection elimination
-        sensors[i].sawSweep = false;
+  for (byte i = 0; i < sensorCount; i++) {
+    // reset all sensors
+    // sawSweep is used for reflection elimination
+    sensors[i].sawSweep = false;
 
-      }
+  }
+
+}
+
+void PulsePosition::getOutputBuffer(uint8_t *buffer) {
+
+  byte bufPos = 0;
+
+  station = prevSyncPulse.station;
+  skip = prevSyncPulse.skip;
+  rotor = prevSyncPulse.rotor;
+  data = prevSyncPulse.data;
+  meta = 0;
+
+  // Construct meta byte
+  (station) ? bitSet(meta, 3) : false;
+  (skip) ? bitSet(meta, 2) : false;
+  (rotor) ? bitSet(meta, 1) : false;
+  (data) ? bitSet(meta, 0) : false;
+
+#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+  buffer[bufPos] = 0xff;
+  bufPos++;
+  buffer[bufPos] = 0xff;
+  bufPos++;
+  buffer[bufPos] = meta;
+  bufPos++;
+#endif
+
+  for (byte i = 0; i < sensorCount; i++) {
+
+    if (sensors[i].sawSweep) {
+#if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+      buffer[bufPos] = sensors[i].id;
+      bufPos++;
+      buffer[bufPos] = (sensors[i].deltaT >> 24);
+      bufPos++;
+      buffer[bufPos] = (sensors[i].deltaT >> 16);
+      bufPos++;
+      buffer[bufPos] = (sensors[i].deltaT >> 8);
+      bufPos++;
+      buffer[bufPos] = (sensors[i].deltaT & 0x00FF);
+      bufPos++;
+#endif
+
+    }
+  }
+
+  for (byte i = 0; i < sensorCount; i++) {
+    // reset all sensors
+    // sawSweep is used for reflection elimination
+    sensors[i].sawSweep = false;
+
+  }
 
 }
 

@@ -1,5 +1,6 @@
 #include "LighthouseSensor.h"
 #include "Pulse.h"
+#include "Adafruit_BLE_UART.h"
 
 class PulsePosition {
 
@@ -58,5 +59,6 @@ class PulsePosition {
     void writePulseTime(LighthouseSensor& sensor);
     Pulse parsePulseType(unsigned long pulseLength);
     void writeData();
+    void getOutputBuffer(uint8_t *buffer);
 
 };
