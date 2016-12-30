@@ -13,16 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import java.text.DecimalFormat;
-/**
- * Simple Read
- * 
- * Read data from the serial port and change the color of a rectangle
- * when a switch connected to a Wiring or Arduino board is pressed and released.
- * This example works with the Wiring / Arduino program that follows below.
- */
-
 
 import processing.serial.*;
+
+import java.awt.datatransfer.*;
+import java.awt.Toolkit;
+import processing.opengl.*;
+import saito.objloader.*;
+
 
 Serial myPort;  // Create object from Serial class
 int val;      // Data received from the serial port
@@ -50,6 +48,9 @@ double[] yRatio = new double[sensorCount];
 boolean[] sawSweep = new boolean[sensorCount];
 long[] lastSweep = new long[sensorCount];
 
+float[] discusPos = new float[3];
+float posScaleFactor = 1000;
+
 final double CPU_SPEED = 96.0; // CPU speed in MHz
 final double SWEEP_CYCLE_TIME = 8333; // Sweep cycle time in us
 final double SWEEP_CYCLE_CLOCK_CYCLES = SWEEP_CYCLE_TIME * CPU_SPEED; // Amount of CPU cycles per sweep
@@ -67,9 +68,11 @@ MatOfPoint2f recordedImgPoints;
 final int res = 2000;
 final int halfRes = res / 2;
 
+OBJModel model;
+
 void setup() 
 {
-  size(1000, 1000);
+  size(1000, 1000, OPENGL);
   surface.setSize(res, res);
 
   // VERY IMPORTANT
@@ -78,13 +81,18 @@ void setup()
 
   // Calculate 3D sensor positions
   // Amount of sensors & radius in meters
-  objPoints = constructObjectPoints(10, 0.09);
+  objPoints = constructObjectPoints(10, 0.08);
 
   println(Serial.list());
 
   String portName = Serial.list()[1];
 
   myPort = new Serial(this, portName, 115200);
+
+  model = new OBJModel(this);
+  model.load("Discus-men-220mm-2kg.obj");
+
+  camera(0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 void draw()
@@ -143,6 +151,25 @@ void draw()
       strokeWeight(10);
     }
   }
+
+  // Set a new co-ordinate space
+  pushMatrix();
+
+  pointLight(255, 200, 200, 400, 400, 500);
+  pointLight(200, 200, 255, -400, 400, 500);
+  pointLight(255, 255, 255, 0, 0, -500);
+  
+  float x = halfRes + (-1 * discusPos[0] * posScaleFactor);
+  float y = halfRes + (-1 * discusPos[1] * posScaleFactor);
+  float z = -1 * discusPos[2] * posScaleFactor;
+  translate(x, y, z);
+  //translate(halfRes, halfRes, 0);
+
+  pushMatrix();
+  noStroke();
+  model.draw();
+  popMatrix();
+  popMatrix();
 }
 
 void serialEvent(Serial p) {
@@ -175,7 +202,7 @@ void parseData() {
     //println("Parsing data");
     int sensorCnt = floor(bufferIndex / msgLength);
     recordedSensorCount = sensorCnt;
-    println("Sensor count", sensorCnt);
+    //println("Sensor count", sensorCnt);
 
     // First byte is the metadata byte holding station, skip, rotor and data values
     int meta = inBuffer[0];
@@ -215,25 +242,25 @@ void parseData() {
 
 
 
-            sawSweep[sensorId] = true;
-            lastSweep[sensorId] = millis();
+          sawSweep[sensorId] = true;
+          lastSweep[sensorId] = millis();
 
-            //println(rotor, sensorId, deltaT, angle);
+          //println(rotor, sensorId, deltaT, angle);
 
-            if (rotor == 0) {
+          if (rotor == 0) {
 
-              xAngle[sensorId] = angle;
-              xRatio[sensorId] = ratio * res;
-            } else {
+            xAngle[sensorId] = angle;
+            xRatio[sensorId] = ratio * res;
+          } else {
 
-              yAngle[sensorId] = angle;
-              yRatio[sensorId] = ratio * res;
-            }
-
-            Point point = new Point(xRatio[sensorId], yRatio[sensorId]);
-            sensorPoints.add(point);
+            yAngle[sensorId] = angle;
+            yRatio[sensorId] = ratio * res;
           }
-        
+
+          Point point = new Point(xRatio[sensorId], yRatio[sensorId]);
+          sensorPoints.add(point);
+        }
+
 
         List<Point3> _objPointList = new ArrayList();
         MatOfPoint2f _imgPoints = new MatOfPoint2f();
@@ -244,8 +271,8 @@ void parseData() {
           _objPointList.add(objPoints.get(recordedSensorIds[i]));
         }
 
-        println(sensorPoints);
-        println(_objPointList);
+        //println(sensorPoints);
+        //println(_objPointList);
 
         _imgPoints.fromList(sensorPoints);
 
@@ -280,10 +307,10 @@ double getRatio(long t) {
 
 void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
 
-  int fx = 1;
-  int fy = 1;
-  int cx = halfRes;
-  int cy = halfRes;
+  int fx = res;
+  int fy = res;
+  int cx = fx / 2;
+  int cy = fy / 2;
   Mat cameraMatrix = new Mat(3, 3, CvType.CV_64FC1);
   cameraMatrix.put(0, 0, fx);
   cameraMatrix.put(0, 2, cx);
@@ -304,7 +331,7 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
 
   try {
     //Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, distortionCoefficients, outputR, outputT, false, Calib3d.CV_EPNP);
-    Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, distCoefficients, outputR, outputT, false, Calib3d.CV_EPNP);
+    Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, distCoefficients, outputR, outputT);
 
     double[] x = new double[1];
     double[] y = new double[1];
@@ -317,6 +344,10 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
     println("X: " + String.valueOf(x[0]));
     println("Y: " + String.valueOf(y[0]));
     println("Z: " + String.valueOf(z[0]));
+
+    discusPos[0] = (float)x[0];
+    discusPos[1] = (float)y[0];
+    discusPos[2] = (float)z[0];
   } 
   catch (Exception e) {
 
