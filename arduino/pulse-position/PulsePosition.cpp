@@ -127,7 +127,8 @@ void PulsePosition::writePulseTime(LighthouseSensor& sensor) {
   //  cli();
 
   // Prevent double sweep registering due to reflections
-  if (!sensor.sawSweep) {
+  // Also only write sweep value if the time does not exceed the max cycle time
+  if (!sensor.sawSweep && (ARM_DWT_CYCCNT - syncPulseStart) < SWEEP_CYCLE_CLOCK_CYCLES) {
 
     sensor.deltaT = ARM_DWT_CYCCNT - syncPulseStart;
     // Serial.println(String(sensor.deltaT) + ", " + String(sensor.skip) + ", " + String(sensor.rotor) + ", " + String(sensor.data));

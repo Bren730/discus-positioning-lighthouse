@@ -7,6 +7,7 @@ import org.opencv.core.MatOfDouble;
 import org.opencv.core.Point;
 import org.opencv.core.Point3;
 import org.opencv.calib3d.Calib3d;
+import org.opencv.core.CvType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,8 @@ byte data;
 
 double[] xAngle = new double[sensorCount];
 double[] yAngle = new double[sensorCount];
+double[] xRatio = new double[sensorCount];
+double[] yRatio = new double[sensorCount];
 boolean[] sawSweep = new boolean[sensorCount];
 long[] lastSweep = new long[sensorCount];
 
@@ -61,7 +64,7 @@ MatOfPoint3f recordedObjPoints;
 MatOfPoint2f imgPoints;
 MatOfPoint2f recordedImgPoints;
 
-final int res = 1000;
+final int res = 2000;
 final int halfRes = res / 2;
 
 void setup() 
@@ -73,7 +76,9 @@ void setup()
   // Only execute OpenCV stuff after this 
   opencv = new OpenCV(this, res, res);
 
-  objPoints = constructObjectPoints(10, 90);
+  // Calculate 3D sensor positions
+  // Amount of sensors & radius in meters
+  objPoints = constructObjectPoints(10, 0.09);
 
   println(Serial.list());
 
@@ -92,14 +97,17 @@ void draw()
     if (xAngle[i] > 0 && millis() - lastSweep[i] < 50) {
 
 
-      float xRad = radians(((float)xAngle[i] - 90));
+      float xRad = -1 * radians(((float)xAngle[i] - 90));
       float yRad = -1 * radians(((float)yAngle[i] - 90));
 
-      float xPos = halfRes + xRad * halfRes;
-      float yPos = halfRes + yRad * halfRes;
+      //float xPos = halfRes + ((float)xRatio[i]) * halfRes;
+      //float yPos = halfRes + ((float)yRatio[i]) * halfRes;
+
+      float xPos = res - (float)xRatio[i];
+      float yPos = res - (float)yRatio[i];
 
       //println(xPos, yPos);
-      //point(xPos, yPos);
+      point(xPos, yPos);
 
       if (i == 0) {
         stroke(255, 0, 0);
@@ -167,7 +175,7 @@ void parseData() {
     //println("Parsing data");
     int sensorCnt = floor(bufferIndex / msgLength);
     recordedSensorCount = sensorCnt;
-    //println("Sensor count", sensorCnt);
+    println("Sensor count", sensorCnt);
 
     // First byte is the metadata byte holding station, skip, rotor and data values
     int meta = inBuffer[0];
@@ -205,22 +213,27 @@ void parseData() {
           double angle = getAngle(deltaT);
           double ratio = getRatio(deltaT);
 
-          sawSweep[sensorId] = true;
-          lastSweep[sensorId] = millis();
 
-          //println(rotor, sensorId, deltaT, angle);
 
-          if (rotor == 0) {
+            sawSweep[sensorId] = true;
+            lastSweep[sensorId] = millis();
 
-            xAngle[sensorId] = angle;
-          } else {
+            //println(rotor, sensorId, deltaT, angle);
 
-            yAngle[sensorId] = angle;
+            if (rotor == 0) {
+
+              xAngle[sensorId] = angle;
+              xRatio[sensorId] = ratio * res;
+            } else {
+
+              yAngle[sensorId] = angle;
+              yRatio[sensorId] = ratio * res;
+            }
+
+            Point point = new Point(xRatio[sensorId], yRatio[sensorId]);
+            sensorPoints.add(point);
           }
-
-          Point point = new Point();
-          sensorPoints.add(point);
-        }
+        
 
         List<Point3> _objPointList = new ArrayList();
         MatOfPoint2f _imgPoints = new MatOfPoint2f();
@@ -228,9 +241,11 @@ void parseData() {
 
         for (int i = 0; i < recordedSensorCount; i++) {
 
-
           _objPointList.add(objPoints.get(recordedSensorIds[i]));
         }
+
+        println(sensorPoints);
+        println(_objPointList);
 
         _imgPoints.fromList(sensorPoints);
 
@@ -267,32 +282,41 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
 
   int fx = 1;
   int fy = 1;
-  int cx = 1 / 2;
-  int cy = 1 / 2;
-  Mat cameraMatrix = new Mat(3, 3, 0);
+  int cx = halfRes;
+  int cy = halfRes;
+  Mat cameraMatrix = new Mat(3, 3, CvType.CV_64FC1);
   cameraMatrix.put(0, 0, fx);
   cameraMatrix.put(0, 2, cx);
   cameraMatrix.put(1, 1, fy);
   cameraMatrix.put(1, 2, cy);
   cameraMatrix.put(2, 2, 1);
 
-  MatOfDouble distortionCoefficients = new MatOfDouble(1, 4, 0.0);
-  MatOfDouble derp = new MatOfDouble();
+  MatOfDouble distortionCoefficients = new MatOfDouble(4, 1, CvType.CV_64FC1);
+  MatOfDouble distCoefficients = new MatOfDouble();
 
   //distortionCoefficients.put(0, 0, 0);
   //distortionCoefficients.put(1, 0, 0);
   //distortionCoefficients.put(2, 0, 0);
   //distortionCoefficients.put(3, 0, 0);
 
-  Mat outputR = new Mat();
-  Mat outputT = new Mat();
+  Mat outputR = new Mat(3, 1, CvType.CV_64FC1);
+  Mat outputT = new Mat(3, 1, CvType.CV_64FC1);
 
   try {
-    //Calib3d.solvePnP(objPoints, imgPoints, cameraMatrix, distortionCoefficients, outputR, outputT, Calib3d.CV_EPNP);
-    Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, derp, outputR, outputT, false, Calib3d.CV_EPNP);
-    println(outputT.get(0, 0));
-    println(outputT.get(1, 0));
-    println(outputT.get(2, 0));
+    //Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, distortionCoefficients, outputR, outputT, false, Calib3d.CV_EPNP);
+    Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, distCoefficients, outputR, outputT, false, Calib3d.CV_EPNP);
+
+    double[] x = new double[1];
+    double[] y = new double[1];
+    double[] z = new double[1];
+
+    outputT.get(0, 0, x);
+    outputT.get(1, 0, y);
+    outputT.get(2, 0, z);
+
+    println("X: " + String.valueOf(x[0]));
+    println("Y: " + String.valueOf(y[0]));
+    println("Z: " + String.valueOf(z[0]));
   } 
   catch (Exception e) {
 

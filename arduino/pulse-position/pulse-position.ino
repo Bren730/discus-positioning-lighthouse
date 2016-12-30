@@ -85,8 +85,8 @@ void setup() {
 
   Serial.println("starting input capture");
 
-  // We captured a sync pulse, attatch interrupts for all sensors
-    attachInterrupts();
+  // Attatch interrupts for all sensors
+  attachInterrupts();
 
 #ifdef SYNC_PULSE_DEBUG
   Serial.println("Printing sync pulse debug info");
@@ -96,9 +96,9 @@ void setup() {
 
 void loop() {
 
-  #ifdef BLUETOOTH
+#ifdef BLUETOOTH
   uart.pollACI();
-  #endif
+#endif
 }
 
 void ic0ISR() {
@@ -111,6 +111,9 @@ void ic0ISR() {
     //    Serial.println("Sync pulse!!!");
     pulsePosition.writeData();
 #endif
+
+// Enable interrupts for all other pins again
+    attachInterrupts();
 
 #ifdef BLUETOOTH
     aci_evt_opcode_t status = uart.getState();
@@ -134,7 +137,7 @@ void ic0ISR() {
 
 #endif
 
-    
+
 
     // Set a timer to detach interrupts just before the end of a sweep
     // This ensures only the syncPulseSensor captures the sync pulse
@@ -148,52 +151,61 @@ void ic0ISR() {
 void ic1ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[1]);
+  detachInterrupt(pulsePosition.sensors[1].pin);
 
 }
 
 void ic2ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[2]);
+  detachInterrupt(pulsePosition.sensors[2].pin);
 
 }
 
 void ic3ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[3]);
+  detachInterrupt(pulsePosition.sensors[3].pin);
 
 }
 void ic4ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[4]);
+  detachInterrupt(pulsePosition.sensors[4].pin);
 
 }
 
 void ic5ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[5]);
+  detachInterrupt(pulsePosition.sensors[5].pin);
 
 }
 
 void ic6ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[6]);
+  detachInterrupt(pulsePosition.sensors[6].pin);
 
 }
 
 void ic7ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[7]);
+  detachInterrupt(pulsePosition.sensors[7].pin);
 
 }
 void ic8ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[8]);
+  detachInterrupt(pulsePosition.sensors[8].pin);
 
 }
 
 void ic9ISR() {
 
   pulsePosition.writePulseTime(pulsePosition.sensors[9]);
+  detachInterrupt(pulsePosition.sensors[9].pin);
 
 }
 
