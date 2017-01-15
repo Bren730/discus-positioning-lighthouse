@@ -1,6 +1,7 @@
 //#define SYNC_PULSE_DEBUG
 //#define BLUETOOTH
 
+#include "DataDiscus.h"
 #include "PulsePosition.h"
 #include "NeoPixel.h"
 #include <SPI.h>
@@ -19,6 +20,7 @@
 #define IC_9 9
 
 PulsePosition pulsePosition;
+DataDiscus dataDiscus;
 
 NeoPixel ring = NeoPixel(24, 23);
 
@@ -88,12 +90,68 @@ void loop() {
 
   byte baseColor[] = {3, 10, 25};
   byte highlightColor[] = {5, 100, 255};
+  float lengths[] = {.4, .2};
+  float durations[] = {2500, 2000};
 
-//  ring.waiting(baseColor, highlightColor, .4, .2, 2500, 2000, 500, false, true, true);
-//  ring.startWaiting();
 
-ring.setPercentage(random(0, 100) / 100.0, highlightColor, 1000, 1000);
-ring.showPercentage();
+  if (dataDiscus.state == DataDiscus::State::STATE_DISCONNECTED) {
+    ring.setWaiting(baseColor, highlightColor, lengths, durations, 500, false, true, true);
+  }
+  ring.showWaiting();
+
+  String inString = "";
+
+  while (Serial1.available()) {
+
+    char c = Serial1.read();
+    inString += c;
+    // This delay is necessary, otherwise the message would get cut into multiple pieces
+    delay(10);
+
+  }
+
+  if (inString != "") {
+    Serial.println(inString);
+    if (inString.indexOf("NEW_PAIRING") > 0 ) {
+
+      dataDiscus.state = DataDiscus::State::STATE_PAIRING;
+      ring.isWaiting = false;
+
+      byte baseColor[] = {3, 10, 25};
+      byte highlightColor[] = {5, 100, 255};
+      float lengths[] = {.3, .3};
+      float durations[] = {1000, 800};
+      
+      ring.setWaiting(baseColor, highlightColor, lengths, durations, 500, false, true, true);
+      
+      Serial.println("DataDiscus is pairing");
+    }
+
+    if (inString.indexOf("CONNECT") > 0 && inString.indexOf("DISCONNECT") < 0) {
+      dataDiscus.state = DataDiscus::State::STATE_CONNECTED;
+      ring.isWaiting = false;
+
+      byte baseColor[] = {0, 25, 10};
+      byte highlightColor[] = {5, 255, 100};
+      float lengths[] = {.5, .5};
+      float durations[] = {2500, -2500};
+      
+      ring.setWaiting(baseColor, highlightColor, lengths, durations, 500, false, true, true);
+      
+      Serial.println("DataDiscus connected");
+    }
+
+    if (inString.indexOf("DISCONNECT") > 0 ) {
+      
+      dataDiscus.state = DataDiscus::State::STATE_DISCONNECTED;
+      ring.isWaiting = false;
+      
+      Serial.println("DataDiscus disconnected");
+    }
+  }
+
+  //  ring.setPercentage(random(0, 100) / 100.0, highlightColor, 2000, 1000);
+  //  ring.showPercentage();
 
 }
 

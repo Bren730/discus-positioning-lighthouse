@@ -10,74 +10,91 @@ NeoPixel::NeoPixel(int pixelCount, int pin) {
 
 }
 
-void NeoPixel::startWaiting() {
+void byteArrayCopy(byte *arrayOriginal, byte *arrayCopy, byte arraySize){
+  while(arraySize--) *arrayCopy++ = *arrayOriginal++;
+}
+
+void floatArrayCopy(float *arrayOriginal, float *arrayCopy, float arraySize){
+  while(arraySize--) *arrayCopy++ = *arrayOriginal++;
+}
+
+void NeoPixel::setWaiting(byte baseColor[], byte highlightColor[], float highlightLengths[], float durations[], float fadeIn, bool reverse, bool two, bool additive) {
 
   if (!isWaiting) {
-    startTimeWaiting = millis();
+    byteArrayCopy(baseColor, waitingBaseColor, sizeof(baseColor));
+    byteArrayCopy(highlightColor, waitingHighlightColor, sizeof(highlightColor));
+    floatArrayCopy(highlightLengths, waitingHighlightLengths, sizeof(highlightLengths));
+    floatArrayCopy(durations, waitingDurations, sizeof(durations));
+    waitingFadeIn = fadeIn;
+    waitingReverse = reverse;
+    waitingTwo = two;
+    waitingAdditive = additive;
+    
+    waitingStartTime = millis();
     isWaiting = true;
   }
 
 }
 
-void NeoPixel::waiting(byte baseColor[], byte highlightColor[], float highlightLength, float highlightLength2, float duration, float duration2, float fadeIn, bool reverse, bool two, bool additive) {
+void NeoPixel::showWaiting() {
 
   if (isWaiting) {
 
-    float overallIntensity = ((float)millis() - (float)startTimeWaiting) / fadeIn;
+    float overallIntensity = ((float)millis() - (float)waitingStartTime) / waitingFadeIn;
 
     if (overallIntensity > 1) {
       overallIntensity = 1;
     }
 
-    float numWaves = 1 / highlightLength;
-    float numWaves2 = 1 / highlightLength2;
+    float numWaves = 1 / waitingHighlightLengths[0];
+    float numWaves2 = 1 / waitingHighlightLengths[1];
 
     for (byte i = 0; i < neoPixel.numPixels(); i++) {
       double lT;
       double lT2;
 
-      if (reverse) {
+      if (waitingReverse) {
 
-        lT = (double)millis() + i * (duration / (double)neoPixel.numPixels());
-        lT2 = (double)millis() - i * (duration2 / (double)neoPixel.numPixels());
+        lT = (double)millis() + i * (waitingDurations[0] / (double)neoPixel.numPixels());
+        lT2 = (double)millis() - i * (waitingDurations[1] / (double)neoPixel.numPixels());
 
       } else {
 
-        lT = (double)millis() - i * (duration / (double)neoPixel.numPixels());
-        lT2 = (double)millis() + i * (duration2 / (double)neoPixel.numPixels());
+        lT = (double)millis() - i * (waitingDurations[0] / (double)neoPixel.numPixels());
+        lT2 = (double)millis() + i * (waitingDurations[1] / (double)neoPixel.numPixels());
 
       }
 
-      int lCycle = floor(lT / duration);
-      int lCycle2 = floor(lT2 / duration2);
+      int lCycle = floor(lT / waitingDurations[0]);
+      int lCycle2 = floor(lT2 / waitingDurations[1]);
 
-      float localPerc = (lT - (lCycle * duration)) / duration;
-      float localPerc2 = (lT2 - (lCycle2 * duration2)) / duration2;
+      float localPerc = (lT - (lCycle * waitingDurations[0])) / waitingDurations[0];
+      float localPerc2 = (lT2 - (lCycle2 * waitingDurations[1])) / waitingDurations[1];
 
       //    if (localPerc < highlightLength) {
 
       float intensity = overallIntensity * 0.5 * cos((localPerc) * 2 * PI * numWaves + PI) + 0.5;
       float intensity2 = overallIntensity * 0.5 * cos((localPerc2) * 2 * PI * numWaves2 + PI) + 0.5;
 
-      if (localPerc > highlightLength) {
+      if (localPerc > waitingHighlightLengths[0]) {
         intensity = 0;
       }
 
-      if (localPerc2 > highlightLength2) {
+      if (localPerc2 > waitingHighlightLengths[1]) {
         intensity2 = 0;
       }
 
       //      Serial.println(String(i) + " " + String(intensity));
 
-      uint16_t r = overallIntensity * ((highlightColor[0] - baseColor[0]) * intensity + baseColor[0]);
-      uint16_t g = overallIntensity * ((highlightColor[1] - baseColor[1]) * intensity + baseColor[1]);
-      uint16_t b = overallIntensity * ((highlightColor[2] - baseColor[2]) * intensity + baseColor[2]);
+      uint16_t r = overallIntensity * ((waitingHighlightColor[0] - waitingBaseColor[0]) * intensity + waitingBaseColor[0]);
+      uint16_t g = overallIntensity * ((waitingHighlightColor[1] - waitingBaseColor[1]) * intensity + waitingBaseColor[1]);
+      uint16_t b = overallIntensity * ((waitingHighlightColor[2] - waitingBaseColor[2]) * intensity + waitingBaseColor[2]);
 
-      uint16_t r2 = overallIntensity * ((highlightColor[0] - baseColor[0]) * intensity2 + baseColor[0]);
-      uint16_t g2 = overallIntensity * ((highlightColor[1] - baseColor[1]) * intensity2 + baseColor[1]);
-      uint16_t b2 = overallIntensity * ((highlightColor[2] - baseColor[2]) * intensity2 + baseColor[2]);
+      uint16_t r2 = overallIntensity * ((waitingHighlightColor[0] - waitingBaseColor[0]) * intensity2 + waitingBaseColor[0]);
+      uint16_t g2 = overallIntensity * ((waitingHighlightColor[1] - waitingBaseColor[1]) * intensity2 + waitingBaseColor[1]);
+      uint16_t b2 = overallIntensity * ((waitingHighlightColor[2] - waitingBaseColor[2]) * intensity2 + waitingBaseColor[2]);
 
-      if (additive) {
+      if (waitingAdditive) {
 
         r2 = r2 + r;
         g2 = g2 + g;
@@ -103,7 +120,7 @@ void NeoPixel::waiting(byte baseColor[], byte highlightColor[], float highlightL
 
       neoPixel.setPixelColor(i, r, g, b);
 
-      if (two) {
+      if (waitingTwo) {
         neoPixel.setPixelColor(i, r2, g2, b2);
       }
 
@@ -141,8 +158,14 @@ void NeoPixel::showPercentage() {
     //    Serial.println(millis());
 
     double progress = (millis() - percentageStartTime) / (double)percentageFadeIn;
-    
+
     if (millis() - percentageStartTime < percentageFadeIn) {
+      
+      Serial.println(progress);
+      progress = QuinticEaseInOut(progress);
+      Serial.println(progress);
+      Serial.println();
+      delay(16);
       double percentagePerPin = 1.0 / (double)neoPixel.numPixels();
       double percentageDiff = percentage - startPercentage;
       double relativeProgress = progress * percentageDiff;
@@ -195,4 +218,6 @@ void NeoPixel::show() {
   // This delay prevents artefacts
   delay(1);
 }
+
+
 
