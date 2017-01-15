@@ -6,6 +6,7 @@ import org.opencv.core.MatOfPoint3f;
 import org.opencv.core.MatOfDouble;
 import org.opencv.core.Point;
 import org.opencv.core.Point3;
+import org.opencv.core.Core;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.CvType;
 
@@ -21,6 +22,7 @@ import java.awt.Toolkit;
 import processing.opengl.*;
 import saito.objloader.*;
 
+import processing.opengl.*;
 
 Serial myPort;  // Create object from Serial class
 int val;      // Data received from the serial port
@@ -58,7 +60,8 @@ float[] discusPosition = new float[3];
 float[] prevDiscusPosition = new float[3];
 float[] discusRotation = new float[3];
 float[] prevDiscusRotation = new float[3];
-float posScaleFactor = 15000;
+float posScaleFactor = 1000;
+float[] GlMat = new float[16];
 
 final double CPU_SPEED = 96.0; // CPU speed in MHz
 final double SWEEP_CYCLE_TIME = 8333; // Sweep cycle time in us
@@ -75,7 +78,7 @@ MatOfPoint3f recordedObjPoints;
 MatOfPoint2f imgPoints;
 MatOfPoint2f recordedImgPoints;
 
-final int res = 2000;
+final int res = 1000;
 final int halfRes = res / 2;
 
 OBJModel model;
@@ -101,8 +104,7 @@ void setup()
 
   model = new OBJModel(this);
   model.load("Discus-men-220mm-2kg.obj");
-  model.scale(6);
-  
+  model.scale(1);
 }
 
 void draw()
@@ -110,7 +112,7 @@ void draw()
 
   clear();
   color c = color(0, 0, 0, 0);
-  background(c);
+  //background(c);
 
   for (int i = 0; i < sensorCount; i++) {
 
@@ -131,6 +133,8 @@ void draw()
 
       //println(xPos, yPos);
       point(xPos, yPos);
+      textSize(20);
+      text(i, xPos, yPos);
 
       if (i == 0) {
         stroke(255, 0, 0);
@@ -167,6 +171,7 @@ void draw()
     }
   }
 
+
   float[] distances = new float[3];
   distances[0] = discusPosition[0] - prevDiscusPosition[0];
   distances[1] = discusPosition[1] - prevDiscusPosition[1];
@@ -183,32 +188,51 @@ void draw()
 
   textSize(32);
   text("Speed: " + String.valueOf(Math.round(v * 100.0) / 100.0) + " m/s", 100, 100);
+
   
-  camera(0, 0, 0, 0, 0, 1, 0, 1, 0);
-  perspective(radians(viveFov), 1, 100, 100000);
+  //println(discusRotation[0], discusRotation[1], discusRotation[2]);
+  //translate(0, 0, -200);
 
-  // Set a new co-ordinate space
-  pushMatrix();
-
-  pointLight(255, 200, 200, 400, 400, 500);
-  pointLight(200, 200, 255, -400, 400, 500);
-  pointLight(255, 255, 255, 0, 0, -500);
-
-  float x = discusPosition[0] * posScaleFactor;
-  float y = discusPosition[1] * posScaleFactor;
-  float z = discusPosition[2] * posScaleFactor;
-  translate(x, y, z);
-
-  rotateX(discusRotation[0]);
-  rotateY(discusRotation[1]);
-  rotateZ(discusRotation[2]);
+  //rotateX(discusRotation[0]);
+  //rotateY(discusRotation[1]);
+  //rotateZ(discusRotation[2]);
   //translate(halfRes, halfRes, 0);
 
-  pushMatrix();
-  noStroke();
-  model.draw();
-  popMatrix();
-  popMatrix();
+  
+
+  //applyMatrix(1,0,0,0,
+  //0,1,0,0,
+  //0,0,1,0,
+  //-1000,0,0,1);
+  
+  //camera(0, 0, 0, 0, 0, -1, 0, 1, 0);
+  //perspective(radians(viveFov), 1, 0.1, 100000); 
+  
+  //pushMatrix();
+  //applyMatrix(GlMat[0], GlMat[1], GlMat[2], GlMat[3], 
+  //  GlMat[4], GlMat[5], GlMat[6], GlMat[7], 
+  //  GlMat[8], GlMat[9], GlMat[10], GlMat[11], 
+  //  GlMat[12], GlMat[13], GlMat[14], GlMat[15]);
+  //println(GlMat);
+    
+  //noStroke();
+  
+  //pointLight(255, 200, 200, 400, 400, 500);
+  //pointLight(200, 200, 255, -400, 400, 500);
+  //pointLight(255, 255, 255, 0, 0, -500);
+  
+  //posScaleFactor = 100;
+  //float x = discusPosition[0] * posScaleFactor;
+  //float y = discusPosition[1] * posScaleFactor;
+  //float z = discusPosition[2] * posScaleFactor;
+  //scale(0.01);
+  //translate(x, y, 2*z);
+  
+  //model.draw();
+  //popMatrix();
+
+  //point(0, 0, -20);
+  
 }
 
 void serialEvent(Serial p) {
@@ -291,13 +315,11 @@ void parseData() {
               xAngle[sensorId] = angle;
               xRatio[sensorId] = ratio * res;
               xScreen[sensorId] = getScreenX(radians((float)angle - 90));
-              
             } else {
 
               yAngle[sensorId] = angle;
               yRatio[sensorId] = ratio * res;
               yScreen[sensorId] = getScreenY(radians((float)angle - 90));
-              
             }
 
             Point point = new Point(xScreen[sensorId], yScreen[sensorId]);
@@ -328,7 +350,6 @@ void parseData() {
     catch (Exception e) {
 
       println(e);
-      
     }
   }
 }
@@ -336,7 +357,7 @@ void parseData() {
 double getAngle(long t) {
 
   double angle = 0;
-  
+
   float fovLimit = (180 - viveFov) / 2.0;
 
   angle = ((double)t / SWEEP_CYCLE_CLOCK_CYCLES) * 180;
@@ -350,23 +371,21 @@ double getAngle(long t) {
 }
 
 float getScreenX(float angle) {
-  
+
   angle = -1 * angle;
-  
+
   float xPos;
   float max = tan(((float)radians(viveFov) / 2.0));
   float perc = tan(angle) / max;
   //println(max, perc, angle);
   xPos = halfRes + (perc * halfRes);
-  
+
   return xPos;
-  
 }
 
 float getScreenY(float angle) {
-  
+
   return getScreenX(angle);
-  
 }
 
 
@@ -398,15 +417,36 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
   //distortionCoefficients.put(2, 0, 0);
   //distortionCoefficients.put(3, 0, 0);
 
-  Mat outputR = new Mat(3, 1, CvType.CV_64FC1);
-  Mat outputT = new Mat(3, 1, CvType.CV_64FC1);
+  Mat rvec = new Mat(3, 3, CvType.CV_64FC1);
+  Mat tvec = new Mat(3, 1, CvType.CV_64FC1);
 
   try {
     //Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, distortionCoefficients, outputR, outputT, false, Calib3d.CV_EPNP);
-    Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, distCoefficients, outputR, outputT);
+    Calib3d.solvePnP(_objPoints, _imgPoints, cameraMatrix, distCoefficients, rvec, tvec);
 
-    Mat rMat = new Mat();
-    Calib3d.Rodrigues(outputR, rMat);
+    Mat rotation = new Mat(3, 3, CvType.CV_64FC1);
+    Calib3d.Rodrigues(rvec, rotation);
+
+    double[] rotArray = new double[(int)rotation.total() * (int)rotation.channels()];
+    double[] tArray = new double[(int)tvec.total() * (int)tvec.channels()];
+
+    rotation.get(0, 0, rotArray);
+    tvec.get(0, 0, tArray);
+
+    //println(tArray);
+
+    float[] glMatrix = {    (float)rotArray[0], -(float)rotArray[3], -(float)rotArray[6], 0.0, 
+      (float)rotArray[1], -(float)rotArray[4], -(float)rotArray[7], 0.0, 
+      (float)rotArray[2], -(float)rotArray[5], -(float)rotArray[8], 0.0, 
+      (float)tArray[0], -(float)tArray[1], -(float)tArray[2], 1.0   };
+
+    //float[] glMatrix = {    (float)rotArray[0], -(float)rotArray[3], -(float)rotArray[6], 1, 
+    //  (float)rotArray[1], -(float)rotArray[4], -(float)rotArray[7], 1, 
+    //  (float)rotArray[2], -(float)rotArray[5], -(float)rotArray[8], 1, 
+    //  (float)tArray[0], -(float)tArray[1], -(float)tArray[2], 1.0   };
+
+    GlMat = glMatrix;
+    //println(GlMat);
 
     //double[][] viewMatrix = {{rMat.get(0, 0)[0], rMat.get(0, 1)[0], rMat.get(0, 2)[0], outputT.get(0, 0)[0]}, 
     //  {rMat.get(1, 0)[0], rMat.get(1, 1)[0], rMat.get(1, 2)[0], outputT.get(1, 0)[0]}, 
@@ -420,7 +460,6 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
 
     //  viewMatrix = viewMatrix * inverseMatrix;
 
-
     double[] x = new double[1];
     double[] y = new double[1];
     double[] z = new double[1];
@@ -429,13 +468,13 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
     double[] yR = new double[1];
     double[] zR = new double[1];
 
-    outputT.get(0, 0, x);
-    outputT.get(1, 0, y);
-    outputT.get(2, 0, z);
+    tvec.get(0, 0, x);
+    tvec.get(1, 0, y);
+    tvec.get(2, 0, z);
 
-    rMat.get(0, 0, xR);
-    rMat.get(1, 0, yR);
-    rMat.get(2, 0, zR);
+    rvec.get(0, 0, xR);
+    rvec.get(1, 0, yR);
+    rvec.get(2, 0, zR);
 
     //println("X: " + String.valueOf(x[0]));
     //println("Y: " + String.valueOf(y[0]));
@@ -456,8 +495,8 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
     discusPosition[0] = (float)x[0];
     discusPosition[1] = (float)y[0];
     discusPosition[2] = (float)z[0];
-    
-    println(x[0], y[0], z[0]);
+
+    //println(x[0], y[0], z[0]);
 
     discusRotation[0] = (float)xR[0];
     discusRotation[1] = (float)zR[0];
@@ -465,7 +504,7 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
   } 
   catch (Exception e) {
 
-    println(e);
+    //println(e);
   }
 }
 
@@ -477,7 +516,7 @@ List<Point3> constructObjectPoints(int corners, double radius) {
 
   for (int i = 0; i < corners; i++) {
 
-    Point3 point = new Point3(cos(radians(angle * i)) * radius, sin(radians(angle * i)) * radius, 0);
+    Point3 point = new Point3(cos(radians(angle * i + 90)) * radius, 0, sin(radians(angle * i + 90)) * radius);
     pointsList.add(point);
   }
 

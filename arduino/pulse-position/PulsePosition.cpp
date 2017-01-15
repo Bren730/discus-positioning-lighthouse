@@ -3,13 +3,24 @@
 
 //#define SYNC_PULSE_DEBUG
 //#define HUMAN_READABLE
+//#define BLUETOOTH
 
 void printBits(byte myByte) {
   for (byte mask = 0x80; mask; mask >>= 1) {
     if (mask  & myByte)
+#ifdef BLUETOOTH
       Serial.print('1');
+#endif
+#ifndef BLUETOOTH
+    Serial.print('1');
+#endif
     else
+#ifdef BLUETOOTH
       Serial.print('0');
+#endif
+#ifndef BLUETOOTH
+    Serial.print('0');
+#endif
   }
 }
 
@@ -22,12 +33,35 @@ void PulsePosition::begin(byte _sensorCount, byte _syncPulseSensor) {
   sensorCount = _sensorCount;
   syncPulseSensor = _syncPulseSensor;
 
-  for (byte i = 0; i < sensorCount; i++) {
+  for (byte i = 2; i < sensorCount + 2; i++) {
 
     LighthouseSensor sensor(i);
     sensors[i] = sensor;
 
   }
+
+  //  Serial.begin(115200);
+  Serial1.begin(115200);
+
+  // Set Bluetooth to highest speed
+  //  Serial1.print('$');
+  //  Serial1.print('$');
+  //  Serial1.print('$');
+  //  while(Serial1.available()) {
+  //
+  //    Serial1.println(Serial1.read());
+  //
+  //  }
+  //  Serial1.print("SU,92");
+  //  delay(100);
+  //  Serial1.begin(921600);
+
+#ifdef BLUETOOTH
+  Serial1.println("PulsePosition initialised");
+#endif
+#ifndef BLUETOOTH
+  Serial.println("PulsePosition initialised");
+#endif
 
 }
 
@@ -284,12 +318,29 @@ void PulsePosition::writeData() {
   (data) ? bitSet(meta, 0) : false;
 
 #if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+
+#ifdef BLUETOOTH
+  Serial1.write(0xff);
+  Serial1.write(0xff);
+  Serial1.write(meta);
+#endif
+#ifndef BLUETOOTH
   Serial.write(0xff);
   Serial.write(0xff);
   Serial.write(meta);
 #endif
+#endif
 
 #ifdef HUMAN_READABLE
+#ifdef BLUETOOTH
+  Serial1.println();
+  Serial1.println("Sync pulse, meta:");
+  printBits(meta);
+  Serial1.println();
+  Serial1.println();
+  Serial1.println("Sensors:");
+#endif
+#ifndef BLUETOOTH
   Serial.println();
   Serial.println("Sync pulse, meta:");
   printBits(meta);
@@ -297,23 +348,39 @@ void PulsePosition::writeData() {
   Serial.println();
   Serial.println("Sensors:");
 #endif
+#endif
 
   for (byte i = 0; i < sensorCount; i++) {
 
     if (sensors[i].sawSweep) {
 #if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
-
+#ifdef BLUETOOTH
+      Serial1.write(sensors[i].id);
+      Serial1.write((sensors[i].deltaT >> 24));
+      Serial1.write((sensors[i].deltaT >> 16));
+      Serial1.write((sensors[i].deltaT >> 8));
+      Serial1.write((sensors[i].deltaT & 0x00FF));
+#endif
+#ifndef BLUETOOTH
       Serial.write(sensors[i].id);
       Serial.write((sensors[i].deltaT >> 24));
       Serial.write((sensors[i].deltaT >> 16));
       Serial.write((sensors[i].deltaT >> 8));
       Serial.write((sensors[i].deltaT & 0x00FF));
 #endif
+#endif
 
 #ifdef HUMAN_READABLE
+#ifdef BLUETOOTH
+      Serial1.print(String(sensors[i].id) + ", ");
+      Serial1.print(String(sensors[i].deltaT) + ", ");
+      Serial1.println();
+#endif
+#ifndef BLUETOOTH
       Serial.print(String(sensors[i].id) + ", ");
       Serial.print(String(sensors[i].deltaT) + ", ");
       Serial.println();
+#endif
 #endif
     }
   }

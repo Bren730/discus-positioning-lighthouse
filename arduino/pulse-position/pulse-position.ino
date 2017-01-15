@@ -4,7 +4,6 @@
 #include "PulsePosition.h"
 #include <SPI.h>
 #include <Math.h>
-#include "Adafruit_BLE_UART.h"
 
 // Teensy 3.2 can run interrupts on pins 0-23 (exposed) and 24-33 (underside)
 #define IC_0 0
@@ -17,14 +16,6 @@
 #define IC_7 7
 #define IC_8 8
 #define IC_9 9
-
-// Bluetooth configuration
-#define ADAFRUITBLE_REQ 10
-#define ADAFRUITBLE_RDY 15
-#define ADAFRUITBLE_RST 14
-Adafruit_BLE_UART uart = Adafruit_BLE_UART(ADAFRUITBLE_REQ, ADAFRUITBLE_RDY, ADAFRUITBLE_RST);
-bool bleConnected = false;
-bool bleStart = false;
 
 PulsePosition pulsePosition;
 
@@ -39,10 +30,8 @@ LighthouseSensor ic7(IC_7);
 LighthouseSensor ic8(IC_8);
 LighthouseSensor ic9(IC_9);
 
-IntervalTimer cycleTimer;
-
 const byte sensorCount = 10;
-const byte syncPulseSensor = 0;
+const byte syncPulseSensor = 2;
 const byte sensorDataLen = 5;
 const byte msgLen = 2 + 1 + (sensorDataLen * sensorCount);
 
@@ -54,8 +43,12 @@ void setup() {
   // Enable clock cycle counter
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
   ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
+  
+  Serial.begin(115200);
+  Serial.println("starting PulsePosition");
 
   pulsePosition.begin(sensorCount, syncPulseSensor);
+  Serial.println("PulsePosition initialised");
 
   attachInterrupt(syncPulseSensor, ic0ISR, CHANGE);
   //  attachInterrupt(IC_1, ic1ISR, CHANGE);
@@ -68,81 +61,36 @@ void setup() {
   //  attachInterrupt(IC_8, ic8ISR, CHANGE);
   //  attachInterrupt(IC_9, ic9ISR, CHANGE);
 
-  Serial.begin(115200);
+  
+//  Serial3.begin(115200);
 
-  SPI.begin();
-  SPI.setClockDivider(SPI_CLOCK_DIV2);
-  // Set alternate SPI pins
-  SPI.setMOSI(11);
-  SPI.setMISO(12);
-  SPI.setSCK(13);
-
-
-  uart.setRXcallback(rxCallback);
-  uart.setACIcallback(aciCallback);
-  uart.setDeviceName("ArcReac"); /* 7 characters max! */
-  uart.begin();
-
-  Serial.println("starting input capture");
+  
+//  Serial3.println("starting input capture");
 
   // Attatch interrupts for all sensors
   attachInterrupts();
 
 #ifdef SYNC_PULSE_DEBUG
   Serial.println("Printing sync pulse debug info");
+//  Serial3.println("Printing sync pulse debug info");
 #endif
 
 }
 
-void loop() {
-
-#ifdef BLUETOOTH
-  uart.pollACI();
-#endif
-}
+void loop() {}
 
 void ic0ISR() {
 
   Pulse pulse = pulsePosition.parsePulse(pulsePosition.sensors[syncPulseSensor]);
 
   if (pulse.pulseType == Pulse::PulseType::SYNC_PULSE) {
-
-#ifndef BLUETOOTH
-    //    Serial.println("Sync pulse!!!");
+    
     pulsePosition.writeData();
-#endif
 
-// Enable interrupts for all other pins again
+    // Enable interrupts for all other pins again
+    cli();
     attachInterrupts();
-
-#ifdef BLUETOOTH
-    aci_evt_opcode_t status = uart.getState();
-
-    if (status == ACI_EVT_CONNECTED && !bleStart) {
-      bleConnected = true;
-    }
-
-    if (status == ACI_EVT_DISCONNECTED) {
-      bleConnected = false;
-      bleStart = false;
-    }
-
-    if (bleConnected && bleStart) {
-      //      uint8_t msg[] = {'H', 'e', 'l', 'l', 'o'};
-      //      uart.write(msg, 5);
-      pulsePosition.getOutputBuffer(outBuffer);
-      uart.write(outBuffer, msgLen);
-
-    }
-
-#endif
-
-
-
-    // Set a timer to detach interrupts just before the end of a sweep
-    // This ensures only the syncPulseSensor captures the sync pulse
-    //    Serial.println("Setting timer")
-    //    cycleTimer.begin(detachInterrupts, 8333);
+    sei();
 
   }
 
@@ -209,12 +157,26 @@ void ic9ISR() {
 
 }
 
+void ic10ISR() {
+
+  pulsePosition.writePulseTime(pulsePosition.sensors[10]);
+  detachInterrupt(pulsePosition.sensors[10].pin);
+
+}
+
+void ic11ISR() {
+
+  pulsePosition.writePulseTime(pulsePosition.sensors[11]);
+  detachInterrupt(pulsePosition.sensors[11].pin);
+
+}
+
 void attachInterrupts() {
 
   //  Serial.println("Attaching interrupts");
 
-  attachInterrupt(1, ic1ISR, RISING);
-  attachInterrupt(2, ic2ISR, RISING);
+//  attachInterrupt(1, ic1ISR, RISING);
+//  attachInterrupt(2, ic2ISR, RISING);
   attachInterrupt(3, ic3ISR, RISING);
   attachInterrupt(4, ic4ISR, RISING);
   attachInterrupt(5, ic5ISR, RISING);
@@ -222,13 +184,15 @@ void attachInterrupts() {
   attachInterrupt(7, ic7ISR, RISING);
   attachInterrupt(8, ic8ISR, RISING);
   attachInterrupt(9, ic9ISR, RISING);
+  attachInterrupt(10, ic10ISR, RISING);
+  attachInterrupt(11, ic11ISR, RISING);
+//  attachInterrupt(12, ic9ISR, RISING);
 
 }
 
 void detachInterrupts() {
   //  pulsePosition.writeData();
   Serial.println("Detaching interrupts");
-  cycleTimer.end();
   pulsePosition.sawSyncPulse = false;
 
   for (byte i = 0; i < sensorCount; i++) {
@@ -236,44 +200,6 @@ void detachInterrupts() {
     detachInterrupt(i);
 
   }
-
-}
-
-void aciCallback(aci_evt_opcode_t event)
-{
-  switch (event)
-  {
-    case ACI_EVT_DEVICE_STARTED:
-      //      Serial.println(F("Advertising started"));
-      break;
-    case ACI_EVT_CONNECTED:
-      //      Serial.println(F("Connected!"));
-      break;
-    case ACI_EVT_DISCONNECTED:
-      //      Serial.println(F("Disconnected or advertising timed out"));
-      break;
-    default:
-      break;
-  }
-}
-
-void rxCallback(uint8_t *buffer, uint8_t len)
-{
-  //  Serial.print(F("Received "));
-  //  Serial.print(len);
-  //  Serial.print(F(" bytes: "));
-  for (int i = 0; i < len; i++)
-    //   Serial.print((char)buffer[i]);
-
-    //  Serial.print(F(" ["));
-
-    for (int i = 0; i < len; i++)
-    {
-      //      Serial.print(" 0x"); Serial.print((char)buffer[i], HEX);
-    }
-  //  Serial.println(F(" ]"));
-
-  bleStart = true;
 
 }
 
