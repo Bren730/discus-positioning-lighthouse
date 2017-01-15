@@ -42,6 +42,8 @@ void PulsePosition::begin(byte _sensorCount, byte _syncPulseSensor) {
 
   //  Serial.begin(115200);
   Serial1.begin(115200);
+  // Wait for Serial1 to start
+  while(!Serial1);
 
   // Set Bluetooth to highest speed
   //  Serial1.print('$');

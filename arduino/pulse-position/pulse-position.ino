@@ -2,6 +2,7 @@
 //#define BLUETOOTH
 
 #include "PulsePosition.h"
+#include "NeoPixel.h"
 #include <SPI.h>
 #include <Math.h>
 
@@ -18,6 +19,8 @@
 #define IC_9 9
 
 PulsePosition pulsePosition;
+
+NeoPixel ring = NeoPixel(24, 23);
 
 LighthouseSensor ic0(IC_0);
 LighthouseSensor ic1(IC_1);
@@ -39,16 +42,19 @@ const byte msgLen = 2 + 1 + (sensorDataLen * sensorCount);
 uint8_t outBuffer[msgLen];
 
 void setup() {
+  Serial.begin(115200);
+
+  // Wait for Serial to start
+  while (!Serial);
 
   // Enable clock cycle counter
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
   ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
-  
-  Serial.begin(115200);
+
+
   Serial.println("starting PulsePosition");
 
   pulsePosition.begin(sensorCount, syncPulseSensor);
-  Serial.println("PulsePosition initialised");
 
   attachInterrupt(syncPulseSensor, ic0ISR, CHANGE);
   //  attachInterrupt(IC_1, ic1ISR, CHANGE);
@@ -61,30 +67,42 @@ void setup() {
   //  attachInterrupt(IC_8, ic8ISR, CHANGE);
   //  attachInterrupt(IC_9, ic9ISR, CHANGE);
 
-  
-//  Serial3.begin(115200);
 
-  
-//  Serial3.println("starting input capture");
+  //  Serial3.begin(115200);
+
+
+  //  Serial3.println("starting input capture");
 
   // Attatch interrupts for all sensors
   attachInterrupts();
 
 #ifdef SYNC_PULSE_DEBUG
   Serial.println("Printing sync pulse debug info");
-//  Serial3.println("Printing sync pulse debug info");
+  delay(2000);
+  //  Serial3.println("Printing sync pulse debug info");
 #endif
 
 }
 
-void loop() {}
+void loop() {
+
+  byte baseColor[] = {3, 10, 25};
+  byte highlightColor[] = {5, 100, 255};
+
+//  ring.waiting(baseColor, highlightColor, .4, .2, 2500, 2000, 500, false, true, true);
+//  ring.startWaiting();
+
+ring.setPercentage(random(0, 100) / 100.0, highlightColor, 1000, 1000);
+ring.showPercentage();
+
+}
 
 void ic0ISR() {
 
   Pulse pulse = pulsePosition.parsePulse(pulsePosition.sensors[syncPulseSensor]);
 
   if (pulse.pulseType == Pulse::PulseType::SYNC_PULSE) {
-    
+
     pulsePosition.writeData();
 
     // Enable interrupts for all other pins again
@@ -175,8 +193,8 @@ void attachInterrupts() {
 
   //  Serial.println("Attaching interrupts");
 
-//  attachInterrupt(1, ic1ISR, RISING);
-//  attachInterrupt(2, ic2ISR, RISING);
+  //  attachInterrupt(1, ic1ISR, RISING);
+  //  attachInterrupt(2, ic2ISR, RISING);
   attachInterrupt(3, ic3ISR, RISING);
   attachInterrupt(4, ic4ISR, RISING);
   attachInterrupt(5, ic5ISR, RISING);
@@ -186,7 +204,7 @@ void attachInterrupts() {
   attachInterrupt(9, ic9ISR, RISING);
   attachInterrupt(10, ic10ISR, RISING);
   attachInterrupt(11, ic11ISR, RISING);
-//  attachInterrupt(12, ic9ISR, RISING);
+  //  attachInterrupt(12, ic9ISR, RISING);
 
 }
 
