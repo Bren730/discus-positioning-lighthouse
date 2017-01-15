@@ -90,9 +90,8 @@ void loop() {
 
   byte baseColor[] = {3, 10, 25};
   byte highlightColor[] = {5, 100, 255};
-  float lengths[] = {.4, .2};
-  float durations[] = {2500, 2000};
-
+  float lengths[] = {.8, .8};
+  float durations[] = {2500, 1954};
 
   if (dataDiscus.state == DataDiscus::State::STATE_DISCONNECTED) {
     ring.setWaiting(baseColor, highlightColor, lengths, durations, 500, false, true, true);
