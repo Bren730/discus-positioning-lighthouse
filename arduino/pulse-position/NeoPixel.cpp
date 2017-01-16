@@ -2,20 +2,29 @@
 #include "Adafruit_NeoPixel.h"
 #include <Arduino.h>
 
+NeoPixel::NeoPixel() {
+  
+}
+
 NeoPixel::NeoPixel(int pixelCount, int pin) {
 
   neoPixel = Adafruit_NeoPixel(pixelCount, pin, NEO_GRB + NEO_KHZ800);
+
+}
+
+void NeoPixel::begin() {
+  
   neoPixel.begin();
   neoPixel.show();
 
 }
 
-void byteArrayCopy(byte *arrayOriginal, byte *arrayCopy, byte arraySize){
-  while(arraySize--) *arrayCopy++ = *arrayOriginal++;
+void byteArrayCopy(byte *arrayOriginal, byte *arrayCopy, byte arraySize) {
+  while (arraySize--) *arrayCopy++ = *arrayOriginal++;
 }
 
-void floatArrayCopy(float *arrayOriginal, float *arrayCopy, float arraySize){
-  while(arraySize--) *arrayCopy++ = *arrayOriginal++;
+void floatArrayCopy(float *arrayOriginal, float *arrayCopy, float arraySize) {
+  while (arraySize--) *arrayCopy++ = *arrayOriginal++;
 }
 
 void NeoPixel::setWaiting(byte baseColor[], byte highlightColor[], float highlightLengths[], float durations[], float fadeIn, bool reverse, bool two, bool additive) {
@@ -29,7 +38,7 @@ void NeoPixel::setWaiting(byte baseColor[], byte highlightColor[], float highlig
     waitingReverse = reverse;
     waitingTwo = two;
     waitingAdditive = additive;
-    
+
     waitingStartTime = millis();
     isWaiting = true;
   }
@@ -160,11 +169,11 @@ void NeoPixel::showPercentage() {
     double progress = (millis() - percentageStartTime) / (double)percentageFadeIn;
 
     if (millis() - percentageStartTime < percentageFadeIn) {
-      
-      Serial.println(progress);
+
+      //      Serial.println(progress);
       progress = QuinticEaseInOut(progress);
-      Serial.println(progress);
-      Serial.println();
+      //      Serial.println(progress);
+      //      Serial.println();
       delay(16);
       double percentagePerPin = 1.0 / (double)neoPixel.numPixels();
       double percentageDiff = percentage - startPercentage;

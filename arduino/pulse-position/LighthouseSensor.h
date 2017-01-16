@@ -1,3 +1,6 @@
+#ifndef LIGHTHOUSE_SENSOR_H
+#define LIGHTHOUSE_SENSOR_H
+
 #include <Arduino.h>
 
 class LighthouseSensor {
@@ -29,3 +32,5 @@ class LighthouseSensor {
     void begin();
 
 };
+
+#endif

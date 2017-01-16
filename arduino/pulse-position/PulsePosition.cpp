@@ -3,7 +3,7 @@
 
 //#define SYNC_PULSE_DEBUG
 //#define HUMAN_READABLE
-//#define BLUETOOTH
+#define BLUETOOTH
 
 void printBits(byte myByte) {
   for (byte mask = 0x80; mask; mask >>= 1) {

@@ -1,3 +1,6 @@
+#ifndef NEOPIXEL_H
+#define NEOPIXEL_H
+
 #include <Arduino.h>
 #include "Adafruit_NeoPixel.h"
 #include "Easing.h"
@@ -11,9 +14,11 @@ class NeoPixel {
   public:
 
     // Constructors
+    NeoPixel();
     NeoPixel(int pixelCount, int pin);
     
     // Functions
+    void begin();
     void showWaiting();
     void setWaiting(byte baseColor[], byte highlightColor[], float highlightLengths[], float durations[], float fadeIn, bool reverse, bool two, bool additive);
 
@@ -45,3 +50,5 @@ class NeoPixel {
     uint16_t percentageDuration;
     
 };
+
+#endif

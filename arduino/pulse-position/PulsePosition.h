@@ -1,3 +1,6 @@
+#ifndef PULSE_POSITION_H
+#define PULSE_POSITION_H
+
 #include "LighthouseSensor.h"
 #include "Pulse.h"
 #include "Adafruit_BLE_UART.h"
@@ -62,3 +65,5 @@ class PulsePosition {
     void getOutputBuffer(uint8_t *buffer);
 
 };
+
+#endif

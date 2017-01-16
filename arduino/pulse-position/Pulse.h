@@ -1,3 +1,5 @@
+#ifndef PULSE_H
+#define PULSE_H
 
 class Pulse {
 
@@ -26,3 +28,5 @@ class Pulse {
     // Functions
 
 };
+
+#endif

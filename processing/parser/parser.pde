@@ -94,7 +94,7 @@ void setup()
 
   // Calculate 3D sensor positions
   // Amount of sensors & radius in meters
-  objPoints = constructObjectPoints(10, 0.08);
+  objPoints = constructObjectPoints(10, 0.07753);
 
   println(Serial.list());
 

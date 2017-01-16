@@ -1,5 +1,5 @@
 //#define SYNC_PULSE_DEBUG
-//#define BLUETOOTH
+#define BLUETOOTH
 
 #include "DataDiscus.h"
 #include "PulsePosition.h"
@@ -19,10 +19,9 @@
 #define IC_8 8
 #define IC_9 9
 
-PulsePosition pulsePosition;
-DataDiscus dataDiscus;
+//dataDiscus.pulsePosition dataDiscus.pulsePosition;
 
-NeoPixel ring = NeoPixel(24, 23);
+//NeoPixel ring = NeoPixel(24, 23);
 
 LighthouseSensor ic0(IC_0);
 LighthouseSensor ic1(IC_1);
@@ -40,23 +39,25 @@ const byte syncPulseSensor = 2;
 const byte sensorDataLen = 5;
 const byte msgLen = 2 + 1 + (sensorDataLen * sensorCount);
 
-// 2 Init bytes, 1 meta byte followed by X sensor data
-uint8_t outBuffer[msgLen];
+DataDiscus dataDiscus(sensorCount, syncPulseSensor, 24, 23);
 
 void setup() {
+  
   Serial.begin(115200);
-
-  // Wait for Serial to start
+  
+#ifndef BLUETOOTH
+// Wait for Serial to start
   while (!Serial);
+#endif
 
   // Enable clock cycle counter
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
   ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
 
+  Serial.println("starting dataDiscus.pulsePosition");
 
-  Serial.println("starting PulsePosition");
-
-  pulsePosition.begin(sensorCount, syncPulseSensor);
+  //  dataDiscus.pulsePosition.begin(sensorCount, syncPulseSensor);
+  dataDiscus.begin();
 
   attachInterrupt(syncPulseSensor, ic0ISR, CHANGE);
   //  attachInterrupt(IC_1, ic1ISR, CHANGE);
@@ -69,9 +70,7 @@ void setup() {
   //  attachInterrupt(IC_8, ic8ISR, CHANGE);
   //  attachInterrupt(IC_9, ic9ISR, CHANGE);
 
-
   //  Serial3.begin(115200);
-
 
   //  Serial3.println("starting input capture");
 
@@ -88,15 +87,10 @@ void setup() {
 
 void loop() {
 
-  byte baseColor[] = {3, 10, 25};
-  byte highlightColor[] = {5, 100, 255};
-  float lengths[] = {.8, .8};
-  float durations[] = {2500, 1954};
-
-  if (dataDiscus.state == DataDiscus::State::STATE_DISCONNECTED) {
-    ring.setWaiting(baseColor, highlightColor, lengths, durations, 500, false, true, true);
+  if (!dataDiscus.isTracking()) {
+    dataDiscus.ring.showWaiting();
   }
-  ring.showWaiting();
+
 
   String inString = "";
 
@@ -105,7 +99,7 @@ void loop() {
     char c = Serial1.read();
     inString += c;
     // This delay is necessary, otherwise the message would get cut into multiple pieces
-    delay(10);
+    delay(16);
 
   }
 
@@ -113,38 +107,22 @@ void loop() {
     Serial.println(inString);
     if (inString.indexOf("NEW_PAIRING") > 0 ) {
 
-      dataDiscus.state = DataDiscus::State::STATE_PAIRING;
-      ring.isWaiting = false;
+      dataDiscus.setState(DataDiscus::State::STATE_PAIRING);
 
-      byte baseColor[] = {3, 10, 25};
-      byte highlightColor[] = {5, 100, 255};
-      float lengths[] = {.3, .3};
-      float durations[] = {1000, 800};
-      
-      ring.setWaiting(baseColor, highlightColor, lengths, durations, 500, false, true, true);
-      
       Serial.println("DataDiscus is pairing");
     }
 
     if (inString.indexOf("CONNECT") > 0 && inString.indexOf("DISCONNECT") < 0) {
-      dataDiscus.state = DataDiscus::State::STATE_CONNECTED;
-      ring.isWaiting = false;
 
-      byte baseColor[] = {0, 25, 10};
-      byte highlightColor[] = {5, 255, 100};
-      float lengths[] = {.5, .5};
-      float durations[] = {2500, -2500};
-      
-      ring.setWaiting(baseColor, highlightColor, lengths, durations, 500, false, true, true);
-      
+      dataDiscus.setState(DataDiscus::State::STATE_CONNECTED);
+
       Serial.println("DataDiscus connected");
     }
 
     if (inString.indexOf("DISCONNECT") > 0 ) {
-      
-      dataDiscus.state = DataDiscus::State::STATE_DISCONNECTED;
-      ring.isWaiting = false;
-      
+
+      dataDiscus.setState(DataDiscus::State::STATE_DISCONNECTED);
+
       Serial.println("DataDiscus disconnected");
     }
   }
@@ -156,11 +134,11 @@ void loop() {
 
 void ic0ISR() {
 
-  Pulse pulse = pulsePosition.parsePulse(pulsePosition.sensors[syncPulseSensor]);
+  Pulse pulse = dataDiscus.pulsePosition.parsePulse(dataDiscus.pulsePosition.sensors[syncPulseSensor]);
 
   if (pulse.pulseType == Pulse::PulseType::SYNC_PULSE) {
 
-    pulsePosition.writeData();
+    dataDiscus.pulsePosition.writeData();
 
     // Enable interrupts for all other pins again
     cli();
@@ -173,76 +151,76 @@ void ic0ISR() {
 
 void ic1ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[1]);
-  detachInterrupt(pulsePosition.sensors[1].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[1]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[1].pin);
 
 }
 
 void ic2ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[2]);
-  detachInterrupt(pulsePosition.sensors[2].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[2]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[2].pin);
 
 }
 
 void ic3ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[3]);
-  detachInterrupt(pulsePosition.sensors[3].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[3]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[3].pin);
 
 }
 void ic4ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[4]);
-  detachInterrupt(pulsePosition.sensors[4].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[4]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[4].pin);
 
 }
 
 void ic5ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[5]);
-  detachInterrupt(pulsePosition.sensors[5].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[5]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[5].pin);
 
 }
 
 void ic6ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[6]);
-  detachInterrupt(pulsePosition.sensors[6].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[6]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[6].pin);
 
 }
 
 void ic7ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[7]);
-  detachInterrupt(pulsePosition.sensors[7].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[7]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[7].pin);
 
 }
 void ic8ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[8]);
-  detachInterrupt(pulsePosition.sensors[8].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[8]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[8].pin);
 
 }
 
 void ic9ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[9]);
-  detachInterrupt(pulsePosition.sensors[9].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[9]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[9].pin);
 
 }
 
 void ic10ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[10]);
-  detachInterrupt(pulsePosition.sensors[10].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[10]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[10].pin);
 
 }
 
 void ic11ISR() {
 
-  pulsePosition.writePulseTime(pulsePosition.sensors[11]);
-  detachInterrupt(pulsePosition.sensors[11].pin);
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[11]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[11].pin);
 
 }
 
@@ -266,9 +244,9 @@ void attachInterrupts() {
 }
 
 void detachInterrupts() {
-  //  pulsePosition.writeData();
+  //  dataDiscus.pulsePosition.writeData();
   Serial.println("Detaching interrupts");
-  pulsePosition.sawSyncPulse = false;
+  dataDiscus.pulsePosition.sawSyncPulse = false;
 
   for (byte i = 0; i < sensorCount; i++) {
 
