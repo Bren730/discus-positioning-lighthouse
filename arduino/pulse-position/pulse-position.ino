@@ -1,5 +1,5 @@
 //#define SYNC_PULSE_DEBUG
-#define BLUETOOTH
+//#define BLUETOOTH
 
 #include "DataDiscus.h"
 #include "PulsePosition.h"
@@ -42,11 +42,11 @@ const byte msgLen = 2 + 1 + (sensorDataLen * sensorCount);
 DataDiscus dataDiscus(sensorCount, syncPulseSensor, 24, 23);
 
 void setup() {
-  
+
   Serial.begin(115200);
-  
+
 #ifndef BLUETOOTH
-// Wait for Serial to start
+  // Wait for Serial to start
   while (!Serial);
 #endif
 
@@ -83,12 +83,26 @@ void setup() {
   //  Serial3.println("Printing sync pulse debug info");
 #endif
 
+Serial.print("System state is ");
+Serial.println(dataDiscus.state);
 }
 
 void loop() {
 
   if (!dataDiscus.isTracking()) {
-    dataDiscus.ring.showWaiting();
+
+    //    dataDiscus.setState(DataDiscus::STATE_TRACKING);
+
+//        dataDiscus.setState(DataDiscus::STATE_BATTERY);
+
+    //    if (millis() > 10000) {
+    //
+    //      dataDiscus.setState(DataDiscus::STATE_DISCONNECTED);
+    //
+    //    }
+
+    dataDiscus.ring.update();
+
   }
 
 
@@ -96,10 +110,14 @@ void loop() {
 
   while (Serial1.available()) {
 
+    cli();
+
     char c = Serial1.read();
     inString += c;
     // This delay is necessary, otherwise the message would get cut into multiple pieces
     delay(16);
+
+    sei();
 
   }
 
@@ -107,21 +125,21 @@ void loop() {
     Serial.println(inString);
     if (inString.indexOf("NEW_PAIRING") > 0 ) {
 
-      dataDiscus.setState(DataDiscus::State::STATE_PAIRING);
+      dataDiscus.setState(DataDiscus::STATE_PAIRING);
 
       Serial.println("DataDiscus is pairing");
     }
 
     if (inString.indexOf("CONNECT") > 0 && inString.indexOf("DISCONNECT") < 0) {
 
-      dataDiscus.setState(DataDiscus::State::STATE_CONNECTED);
+      dataDiscus.setState(DataDiscus::STATE_CONNECTED);
 
       Serial.println("DataDiscus connected");
     }
 
     if (inString.indexOf("DISCONNECT") > 0 ) {
 
-      dataDiscus.setState(DataDiscus::State::STATE_DISCONNECTED);
+      dataDiscus.setState(DataDiscus::STATE_DISCONNECTED);
 
       Serial.println("DataDiscus disconnected");
     }

@@ -13,18 +13,20 @@ DataDiscus::DataDiscus(byte _sensorCount, byte _syncPulseSensor, byte _pixelCoun
   pixelCount = _pixelCount;
   neoPixelPin = _neoPixelPin;
 
-//  ring = NeoPixel(pixelCount, neoPixelPin);
+//  state = STATE_DISCONNECTED;
   
+  //  ring = NeoPixel(pixelCount, neoPixelPin);
+
 }
 
 void DataDiscus::begin() {
 
   pulsePosition.begin(sensorCount, syncPulseSensor);
-  
+
   ring.begin();
 
-  setState(State::STATE_DISCONNECTED);
-  
+  setState(STATE_BATTERY);
+
 }
 
 void ddByteArrayCopy(byte *arrayOriginal, byte *arrayCopy, byte arraySize) {
@@ -37,70 +39,107 @@ void ddFloatArrayCopy(float *arrayOriginal, float *arrayCopy, float arraySize) {
 
 void DataDiscus::setState(State _state) {
 
-  state = _state;
+  Serial.print("DataDiscus state set to ");
+  Serial.println(_state);
 
-  switch (state) {
+  switch (_state) {
 
-    case State::STATE_DISCONNECTED: {
+    case STATE_DISCONNECTED: {
 
-        ring.isWaiting = false;
+        if (_state != state) {
 
-        byte _baseColor[] = {3, 10, 25};
-        byte _highlightColor[] = {5, 100, 100};
-        float _lengths[] = {.65, .65};
-        float _durations[] = {2500, 1954};
+          byte _baseColor[] = {3, 10, 25};
+          byte _highlightColor[] = {5, 100, 100};
+          float _lengths[] = {.65, .65};
+          float _durations[] = {2500, 1954};
 
-        ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(_baseColor));
-        ddByteArrayCopy(_highlightColor, ddWaitingHighlightColor, sizeof(_highlightColor));
-        ddFloatArrayCopy(_lengths, ddWaitingLengths, sizeof(_lengths));
-        ddFloatArrayCopy(_durations, ddWaitingDurations, sizeof(_durations));
+          ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(_baseColor));
+          ddByteArrayCopy(_highlightColor, ddWaitingHighlightColor, sizeof(_highlightColor));
+          ddFloatArrayCopy(_lengths, ddWaitingLengths, sizeof(_lengths));
+          ddFloatArrayCopy(_durations, ddWaitingDurations, sizeof(_durations));
 
-        ring.setWaiting(ddWaitingBaseColor, ddWaitingHighlightColor, ddWaitingLengths, ddWaitingDurations, 500, false, true, true);
+          ring.setWaiting(ddWaitingBaseColor, ddWaitingHighlightColor, ddWaitingLengths, ddWaitingDurations, 500, false, true, true);
+        }
+      }
+      break;
+
+    case STATE_CONNECTED: {
+        if (_state != state) {
+
+          byte _baseColor[] = {0, 10, 0};
+          byte _highlightColor[] = {5, 255, 0};
+          float _lengths[] = {.5, .5};
+          float _durations[] = {2500, -2500};
+
+          ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(_baseColor));
+          ddByteArrayCopy(_highlightColor, ddWaitingHighlightColor, sizeof(_highlightColor));
+          ddFloatArrayCopy(_lengths, ddWaitingLengths, sizeof(_lengths));
+          ddFloatArrayCopy(_durations, ddWaitingDurations, sizeof(_durations));
+
+          ring.setWaiting(ddWaitingBaseColor, ddWaitingHighlightColor, ddWaitingLengths, ddWaitingDurations, 500, false, true, true);
+        }
+      }
+      break;
+
+
+    case STATE_PAIRING: {
+        if (_state != state) {
+
+          byte _baseColor[] = {3, 10, 25};
+          byte _highlightColor[] = {5, 100, 255};
+          float _lengths[] = {.3, .3};
+          float _durations[] = {1000, 800};
+
+          ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(_baseColor));
+          ddByteArrayCopy(_highlightColor, ddWaitingHighlightColor, sizeof(_highlightColor));
+          ddFloatArrayCopy(_lengths, ddWaitingLengths, sizeof(_lengths));
+          ddFloatArrayCopy(_durations, ddWaitingDurations, sizeof(_durations));
+
+          ring.setWaiting(ddWaitingBaseColor, ddWaitingHighlightColor, ddWaitingLengths, ddWaitingDurations, 500, false, true, true);
+        }
+      }
+
+      break;
+
+    case STATE_TRACKING: {
 
       }
       break;
 
-    case State::STATE_CONNECTED: {
+    case STATE_BATTERY: {
+      
 
-        ring.isWaiting = false;
+        if (_state != state) {
+//
+//          for(int i = 0; i < pixelCount; i++ ){
+//
+//            ring.neoPixel.setPixelColor(i, 255, 255, 255);
+//            
+//          }
+//
+//          ring.show();
+//
+//          delay(4000);
+          pinMode(13, OUTPUT);
+          digitalWrite(13, HIGH);
+          
+          float percentage = 0.9;
+          byte r = (1 - percentage) * 255;
+          byte g = percentage * 255;
 
-        byte _baseColor[] = {0, 10, 0};
-        byte _highlightColor[] = {5, 255, 0};
-        float _lengths[] = {.5, .5};
-        float _durations[] = {2500, -2500};
+          byte color[] = {r, g, 0};
 
-        ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(_baseColor));
-        ddByteArrayCopy(_highlightColor, ddWaitingHighlightColor, sizeof(_highlightColor));
-        ddFloatArrayCopy(_lengths, ddWaitingLengths, sizeof(_lengths));
-        ddFloatArrayCopy(_durations, ddWaitingDurations, sizeof(_durations));
+          ring.didSetPercentageStartTime = false;
 
-        ring.setWaiting(ddWaitingBaseColor, ddWaitingHighlightColor, ddWaitingLengths, ddWaitingDurations, 500, false, true, true);
+          ring.setPercentage(percentage, color, 1500, 2000);
+
+        }
 
       }
       break;
 
-
-    case State::STATE_PAIRING: {
-
-        ring.isWaiting = false;
-
-        byte _baseColor[] = {3, 10, 25};
-        byte _highlightColor[] = {5, 100, 255};
-        float _lengths[] = {.3, .3};
-        float _durations[] = {1000, 800};
-
-        ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(_baseColor));
-        ddByteArrayCopy(_highlightColor, ddWaitingHighlightColor, sizeof(_highlightColor));
-        ddFloatArrayCopy(_lengths, ddWaitingLengths, sizeof(_lengths));
-        ddFloatArrayCopy(_durations, ddWaitingDurations, sizeof(_durations));
-
-        ring.setWaiting(ddWaitingBaseColor, ddWaitingHighlightColor, ddWaitingLengths, ddWaitingDurations, 500, false, true, true);
-
-      }
-
-      break;
-
-    case State::STATE_TRACKING: {
+    case STATE_NONE: {
+      
 
       }
       break;
@@ -109,30 +148,37 @@ void DataDiscus::setState(State _state) {
       break;
   }
 
+  state = _state;
 
+}
+
+void DataDiscus::showBatteryLevel() {
+
+  
+  
 }
 
 bool DataDiscus::isDisconnected() {
 
-  return (state == State::STATE_DISCONNECTED);
-  
+  return (state == STATE_DISCONNECTED);
+
 }
 
 bool DataDiscus::isConnected() {
 
-  return (state == State::STATE_CONNECTED);
-  
+  return (state == STATE_CONNECTED);
+
 }
 
 bool DataDiscus::isPairing() {
 
-  return (state == State::STATE_PAIRING);
-  
+  return (state == STATE_PAIRING);
+
 }
 
 bool DataDiscus::isTracking() {
 
-  return (state == State::STATE_TRACKING);
-  
+  return (state == STATE_TRACKING);
+
 }
 

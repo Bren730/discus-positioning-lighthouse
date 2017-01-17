@@ -307,6 +307,8 @@ Pulse PulsePosition::parsePulseType(unsigned long pulseLength) {
 
 void PulsePosition::writeData() {
 
+  cli();
+
   station = prevSyncPulse.station;
   skip = prevSyncPulse.skip;
   rotor = prevSyncPulse.rotor;
@@ -393,6 +395,8 @@ void PulsePosition::writeData() {
     sensors[i].sawSweep = false;
 
   }
+
+  sei();
 
 }
 

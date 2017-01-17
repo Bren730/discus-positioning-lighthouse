@@ -13,12 +13,18 @@ class NeoPixel {
 
   public:
 
+  enum Visual {VISUAL_WAITING, VISUAL_PERCENTAGE, VISUAL_NONE};
+
+  Visual visual;
+
     // Constructors
     NeoPixel();
     NeoPixel(int pixelCount, int pin);
     
     // Functions
     void begin();
+    void setVisual(Visual _visual);
+    void update();
     void showWaiting();
     void setWaiting(byte baseColor[], byte highlightColor[], float highlightLengths[], float durations[], float fadeIn, bool reverse, bool two, bool additive);
 
@@ -31,7 +37,6 @@ class NeoPixel {
     Adafruit_NeoPixel neoPixel;
     
     unsigned long waitingStartTime;
-    bool isWaiting = false;
     byte waitingBaseColor[3];
     byte waitingHighlightColor[3];
     float waitingHighlightLengths[2];
@@ -45,7 +50,7 @@ class NeoPixel {
     unsigned long percentageStartTime;
     double startPercentage = 0;
     double percentage = 0;
-    byte percentagRgb[3];
+    byte percentageRgb[3];
     uint16_t percentageFadeIn;
     uint16_t percentageDuration;
     
