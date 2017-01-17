@@ -55,24 +55,28 @@ void byteArrayCopy(byte *arrayOriginal, byte *arrayCopy, byte arraySize) {
   while (arraySize--) *arrayCopy++ = *arrayOriginal++;
 }
 
-void floatArrayCopy(float *arrayOriginal, float *arrayCopy, float arraySize) {
+void floatArrayCopy(float *arrayOriginal, float *arrayCopy, byte arraySize) {
+  arraySize = byte(arraySize / sizeof(float));
   while (arraySize--) *arrayCopy++ = *arrayOriginal++;
 }
 
 void NeoPixel::setWaiting(byte baseColor[], byte highlightColor[], float highlightLengths[], float durations[], float fadeIn, bool reverse, bool two, bool additive) {
 
-    byteArrayCopy(baseColor, waitingBaseColor, sizeof(baseColor));
-    byteArrayCopy(highlightColor, waitingHighlightColor, sizeof(highlightColor));
-    floatArrayCopy(highlightLengths, waitingHighlightLengths, sizeof(highlightLengths));
-    floatArrayCopy(durations, waitingDurations, sizeof(durations));
-    waitingFadeIn = fadeIn;
-    waitingReverse = reverse;
-    waitingTwo = two;
-    waitingAdditive = additive;
+  // Since the arrays are passed by reference, their size is incorrect. Therefore we have to specify the size of the array with the size we expect it to be.
+  byteArrayCopy(baseColor, waitingBaseColor, sizeof(waitingBaseColor));
+  byteArrayCopy(highlightColor, waitingHighlightColor, sizeof(waitingHighlightColor));
 
-    waitingStartTime = millis();
+  floatArrayCopy(highlightLengths, waitingHighlightLengths, sizeof(waitingHighlightLengths));
+  floatArrayCopy(durations, waitingDurations, sizeof(waitingDurations));
 
-    setVisual(VISUAL_WAITING);
+  waitingFadeIn = fadeIn;
+  waitingReverse = reverse;
+  waitingTwo = two;
+  waitingAdditive = additive;
+
+  waitingStartTime = millis();
+
+  setVisual(VISUAL_WAITING);
 
 }
 

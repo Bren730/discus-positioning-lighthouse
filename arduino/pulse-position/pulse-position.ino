@@ -41,6 +41,8 @@ const byte msgLen = 2 + 1 + (sensorDataLen * sensorCount);
 
 DataDiscus dataDiscus(sensorCount, syncPulseSensor, 24, 23);
 
+unsigned long systemStartTime;
+
 void setup() {
 
   Serial.begin(115200);
@@ -83,17 +85,28 @@ void setup() {
   //  Serial3.println("Printing sync pulse debug info");
 #endif
 
-Serial.print("System state is ");
-Serial.println(dataDiscus.state);
+  Serial.print("System state is ");
+  Serial.println(dataDiscus.state);
+
+  systemStartTime = millis();
 }
 
 void loop() {
 
   if (!dataDiscus.isTracking()) {
 
+    if (((millis() - systemStartTime) > (dataDiscus.ddBatteryAnimationDuration + 200)) && !dataDiscus.didShowBatteryLevel) {
+
+      dataDiscus.setState(DataDiscus::STATE_DISCONNECTED);
+      dataDiscus.didShowBatteryLevel = true;
+      Serial.println("Battery level shown");
+      delay(16);
+
+    }
+
     //    dataDiscus.setState(DataDiscus::STATE_TRACKING);
 
-//        dataDiscus.setState(DataDiscus::STATE_BATTERY);
+    //        dataDiscus.setState(DataDiscus::STATE_BATTERY);
 
     //    if (millis() > 10000) {
     //
@@ -110,13 +123,15 @@ void loop() {
 
   while (Serial1.available()) {
 
+    // Prevent interrupts from disrupting the Serial communication
     cli();
 
     char c = Serial1.read();
     inString += c;
     // This delay is necessary, otherwise the message would get cut into multiple pieces
-    delay(16);
+    delay(10);
 
+    // Enable interrupts again
     sei();
 
   }
@@ -134,14 +149,14 @@ void loop() {
 
       dataDiscus.setState(DataDiscus::STATE_CONNECTED);
 
-      Serial.println("DataDiscus connected");
+      Serial.println("DataDiscus connected to a device");
     }
 
     if (inString.indexOf("DISCONNECT") > 0 ) {
 
       dataDiscus.setState(DataDiscus::STATE_DISCONNECTED);
 
-      Serial.println("DataDiscus disconnected");
+      Serial.println("DataDiscus disconnected from a device");
     }
   }
 
