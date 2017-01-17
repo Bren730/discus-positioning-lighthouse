@@ -61,7 +61,7 @@ void setup() {
   //  dataDiscus.pulsePosition.begin(sensorCount, syncPulseSensor);
   dataDiscus.begin();
 
-  attachInterrupt(syncPulseSensor, ic0ISR, CHANGE);
+  
   //  attachInterrupt(IC_1, ic1ISR, CHANGE);
   //  attachInterrupt(IC_2, ic2ISR, CHANGE);
   //  attachInterrupt(IC_3, ic3ISR, CHANGE);
@@ -104,15 +104,11 @@ void loop() {
 
     }
 
-    //    dataDiscus.setState(DataDiscus::STATE_TRACKING);
-
-    //        dataDiscus.setState(DataDiscus::STATE_BATTERY);
-
-    //    if (millis() > 10000) {
-    //
-    //      dataDiscus.setState(DataDiscus::STATE_DISCONNECTED);
-    //
-    //    }
+    if (millis() > dataDiscus.connectionStartTime + dataDiscus.trackingStartDelay && dataDiscus.shouldStartTracking) {
+      dataDiscus.setState(DataDiscus::STATE_TRACKING);
+      Serial.println("Tracking started");
+      attachInterrupt(syncPulseSensor, ic0ISR, CHANGE);
+    }
 
     dataDiscus.ring.update();
 
@@ -140,9 +136,11 @@ void loop() {
     Serial.println(inString);
     if (inString.indexOf("NEW_PAIRING") > 0 ) {
 
+      detachInterrupt(syncPulseSensor);
       dataDiscus.setState(DataDiscus::STATE_PAIRING);
 
       Serial.println("DataDiscus is pairing");
+      
     }
 
     if (inString.indexOf("CONNECT") > 0 && inString.indexOf("DISCONNECT") < 0) {
@@ -154,6 +152,7 @@ void loop() {
 
     if (inString.indexOf("DISCONNECT") > 0 ) {
 
+      detachInterrupt(syncPulseSensor);
       dataDiscus.setState(DataDiscus::STATE_DISCONNECTED);
 
       Serial.println("DataDiscus disconnected from a device");

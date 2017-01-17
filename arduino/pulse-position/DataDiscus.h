@@ -26,6 +26,9 @@ class DataDiscus {
     byte syncPulseSensor;
     byte pixelCount;
     byte neoPixelPin;
+    unsigned long connectionStartTime;
+    uint16_t trackingStartDelay = 1000;
+    bool shouldStartTracking = false;
     
     NeoPixel ring = NeoPixel(24, 23);
     PulsePosition pulsePosition;

@@ -49,6 +49,8 @@ void DataDiscus::setState(State _state) {
 
         if (_state != state) {
 
+          shouldStartTracking = false;
+
           byte _baseColor[] = {3, 10, 25};
           byte _highlightColor[] = {5, 100, 100};
           float _lengths[] = {.65, .65};
@@ -65,10 +67,9 @@ void DataDiscus::setState(State _state) {
       break;
 
     case STATE_CONNECTED: {
+      
         if (_state != state) {
-
-          Serial.println();
-
+          
           byte _baseColor[] = {0, 10, 0};
           byte _highlightColor[] = {5, 255, 0};
           float _lengths[] = {.5, .5};
@@ -80,6 +81,9 @@ void DataDiscus::setState(State _state) {
           ddFloatArrayCopy(_durations, ddWaitingDurations, sizeof(ddWaitingDurations));
 
           ring.setWaiting(ddWaitingBaseColor, ddWaitingHighlightColor, ddWaitingLengths, ddWaitingDurations, 500, false, true, true);
+
+          connectionStartTime = millis();
+          shouldStartTracking = true;
         }
       }
       break;
@@ -88,6 +92,8 @@ void DataDiscus::setState(State _state) {
     case STATE_PAIRING: {
         if (_state != state) {
 
+          shouldStartTracking = false;
+          
           byte _baseColor[] = {3, 10, 25};
           byte _highlightColor[] = {5, 100, 255};
           float _lengths[] = {.5, .5};
