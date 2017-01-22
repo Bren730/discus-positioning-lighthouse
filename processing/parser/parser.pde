@@ -335,7 +335,7 @@ void parseData() {
 
         for (int i = 0; i < recordedSensorCount; i++) {
 
-          _objPointList.add(objPoints.get(recordedSensorIds[i]));
+          _objPointList.add(objPoints.get(recordedSensorIds[i] - 2));
         }
 
         //println(sensorPoints);
