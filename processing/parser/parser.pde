@@ -12,6 +12,8 @@ import org.opencv.core.CvType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import java.text.DecimalFormat;
 
@@ -26,6 +28,13 @@ import processing.opengl.*;
 
 Serial myPort;  // Create object from Serial class
 int val;      // Data received from the serial port
+
+int saveCount = 60 * 60;
+int recvCount = 0;
+float positionsF[][] = new float[saveCount][3];
+ArrayList<float[]> positions = new ArrayList<float[]>();
+boolean didWriteToFile = false;
+boolean writeToFile = true;
 
 final int msgLength = 5;
 final int bufferSize = 32 * msgLength;
@@ -190,7 +199,7 @@ void draw()
   textSize(32);
   text("Speed: " + String.valueOf(Math.round(v * 100.0) / 100.0) + " m/s", 100, 100);
 
-  
+
   //println(discusRotation[0], discusRotation[1], discusRotation[2]);
   //translate(0, 0, -200);
 
@@ -199,41 +208,40 @@ void draw()
   //rotateZ(discusRotation[2]);
   //translate(halfRes, halfRes, 0);
 
-  
+
 
   //applyMatrix(1,0,0,0,
   //0,1,0,0,
   //0,0,1,0,
   //-1000,0,0,1);
-  
+
   //camera(0, 0, 0, 0, 0, -1, 0, 1, 0);
   //perspective(radians(viveFov), 1, 0.1, 100000); 
-  
+
   //pushMatrix();
   //applyMatrix(GlMat[0], GlMat[1], GlMat[2], GlMat[3], 
   //  GlMat[4], GlMat[5], GlMat[6], GlMat[7], 
   //  GlMat[8], GlMat[9], GlMat[10], GlMat[11], 
   //  GlMat[12], GlMat[13], GlMat[14], GlMat[15]);
   //println(GlMat);
-    
+
   //noStroke();
-  
+
   //pointLight(255, 200, 200, 400, 400, 500);
   //pointLight(200, 200, 255, -400, 400, 500);
   //pointLight(255, 255, 255, 0, 0, -500);
-  
+
   //posScaleFactor = 100;
   //float x = discusPosition[0] * posScaleFactor;
   //float y = discusPosition[1] * posScaleFactor;
   //float z = discusPosition[2] * posScaleFactor;
   //scale(0.01);
   //translate(x, y, 2*z);
-  
+
   //model.draw();
   //popMatrix();
 
   //point(0, 0, -20);
-  
 }
 
 void serialEvent(Serial p) {
@@ -346,6 +354,44 @@ void parseData() {
         _objPoints.fromList(_objPointList);
 
         solvePnp(_objPoints, _imgPoints);
+
+        if (millis() > 10000 && writeToFile) {
+
+          if (recvCount < saveCount - 1) {
+            positions.add(discusPosition);
+            positionsF[recvCount][0] = discusPosition[0];
+            positionsF[recvCount][1] = discusPosition[1];
+            positionsF[recvCount][2] = discusPosition[2];
+          }
+          //println("Added", discusPosition[0], discusPosition[1], discusPosition[2], "to positions");
+
+          if (recvCount == saveCount) {
+            PrintWriter output;
+            SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
+            Date now = new Date();
+            String strDate = sdfDate.format(now);
+            output = createWriter("Recording " + strDate + ".txt");
+
+            println("limit reached, printing");
+
+            for (int j = 0; j < saveCount; j++) {
+
+              //output.println(positions.get(j)[0] + "; " + positions.get(j)[1] + "; " + positions.get(j)[2]);
+              output.println(positionsF[j][0] + "; " + positionsF[j][1] + "; " + positionsF[j][2]);
+            }
+
+            output.flush();
+            output.close();
+
+            didWriteToFile = true;
+            exit();
+          }
+
+          //println(recvCount);
+
+          // Increment the amount of received position updates
+          recvCount++;
+        }
       }
     } 
     catch (Exception e) {
@@ -366,7 +412,6 @@ double getAngle(long t) {
   if (angle < fovLimit || angle > 180 - fovLimit) {
 
     angle = 0;
-    
   }
 
   return angle;
@@ -498,7 +543,7 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
     discusPosition[1] = (float)y[0];
     discusPosition[2] = (float)z[0];
 
-    println(x[0], y[0], z[0]);
+    //println(x[0], y[0], z[0]);
 
     discusRotation[0] = (float)xR[0];
     discusRotation[1] = (float)zR[0];
