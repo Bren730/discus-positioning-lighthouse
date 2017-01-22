@@ -27,7 +27,7 @@ class DataDiscus {
     byte pixelCount;
     byte neoPixelPin;
     unsigned long connectionStartTime;
-    uint16_t trackingStartDelay = 1000;
+    uint16_t trackingStartDelay = 4000;
     bool shouldStartTracking = false;
     
     NeoPixel ring = NeoPixel(24, 23);

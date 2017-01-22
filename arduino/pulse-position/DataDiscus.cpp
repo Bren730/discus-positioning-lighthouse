@@ -51,8 +51,8 @@ void DataDiscus::setState(State _state) {
 
           shouldStartTracking = false;
 
-          byte _baseColor[] = {3, 10, 25};
-          byte _highlightColor[] = {5, 100, 100};
+          byte _baseColor[] = {0, 0, 25};
+          byte _highlightColor[] = {50, 100, 100};
           float _lengths[] = {.65, .65};
           float _durations[] = {2500, 1954};
 

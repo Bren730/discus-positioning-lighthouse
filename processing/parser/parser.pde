@@ -134,6 +134,7 @@ void draw()
       //println(xPos, yPos);
       point(xPos, yPos);
       textSize(20);
+      textSize(20);
       text(i, xPos, yPos);
 
       if (i == 0) {
@@ -365,6 +366,7 @@ double getAngle(long t) {
   if (angle < fovLimit || angle > 180 - fovLimit) {
 
     angle = 0;
+    
   }
 
   return angle;
@@ -496,7 +498,7 @@ void solvePnp(MatOfPoint3f _objPoints, MatOfPoint2f _imgPoints) {
     discusPosition[1] = (float)y[0];
     discusPosition[2] = (float)z[0];
 
-    //println(x[0], y[0], z[0]);
+    println(x[0], y[0], z[0]);
 
     discusRotation[0] = (float)xR[0];
     discusRotation[1] = (float)zR[0];

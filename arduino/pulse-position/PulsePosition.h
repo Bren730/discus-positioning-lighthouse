@@ -49,6 +49,7 @@ class PulsePosition {
     Pulse syncPulse;
     Pulse prevSyncPulse;
 
+    // Teensy can support a maximum of 34 sensors
     LighthouseSensor sensors[34];
 
     volatile bool station;

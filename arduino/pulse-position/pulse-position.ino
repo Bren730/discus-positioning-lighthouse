@@ -4,7 +4,6 @@
 #include "DataDiscus.h"
 #include "PulsePosition.h"
 #include "NeoPixel.h"
-#include <SPI.h>
 #include <Math.h>
 
 // Teensy 3.2 can run interrupts on pins 0-23 (exposed) and 24-33 (underside)
@@ -19,25 +18,8 @@
 #define IC_8 8
 #define IC_9 9
 
-//dataDiscus.pulsePosition dataDiscus.pulsePosition;
-
-//NeoPixel ring = NeoPixel(24, 23);
-
-LighthouseSensor ic0(IC_0);
-LighthouseSensor ic1(IC_1);
-LighthouseSensor ic2(IC_2);
-LighthouseSensor ic3(IC_3);
-LighthouseSensor ic4(IC_4);
-LighthouseSensor ic5(IC_5);
-LighthouseSensor ic6(IC_6);
-LighthouseSensor ic7(IC_7);
-LighthouseSensor ic8(IC_8);
-LighthouseSensor ic9(IC_9);
-
 const byte sensorCount = 10;
 const byte syncPulseSensor = 2;
-const byte sensorDataLen = 5;
-const byte msgLen = 2 + 1 + (sensorDataLen * sensorCount);
 
 DataDiscus dataDiscus(sensorCount, syncPulseSensor, 24, 23);
 
@@ -61,7 +43,7 @@ void setup() {
   //  dataDiscus.pulsePosition.begin(sensorCount, syncPulseSensor);
   dataDiscus.begin();
 
-  
+
   //  attachInterrupt(IC_1, ic1ISR, CHANGE);
   //  attachInterrupt(IC_2, ic2ISR, CHANGE);
   //  attachInterrupt(IC_3, ic3ISR, CHANGE);
@@ -89,6 +71,8 @@ void setup() {
   Serial.println(dataDiscus.state);
 
   systemStartTime = millis();
+
+  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
 }
 
 void loop() {
@@ -140,7 +124,7 @@ void loop() {
       dataDiscus.setState(DataDiscus::STATE_PAIRING);
 
       Serial.println("DataDiscus is pairing");
-      
+
     }
 
     if (inString.indexOf("CONNECT") > 0 && inString.indexOf("DISCONNECT") < 0) {
@@ -258,20 +242,23 @@ void ic11ISR() {
 
 void attachInterrupts() {
 
+  cli();
   //  Serial.println("Attaching interrupts");
 
-  //  attachInterrupt(1, ic1ISR, RISING);
-  //  attachInterrupt(2, ic2ISR, RISING);
-  attachInterrupt(3, ic3ISR, RISING);
-  attachInterrupt(4, ic4ISR, RISING);
-  attachInterrupt(5, ic5ISR, RISING);
-  attachInterrupt(6, ic6ISR, RISING);
-  attachInterrupt(7, ic7ISR, RISING);
-  attachInterrupt(8, ic8ISR, RISING);
-  attachInterrupt(9, ic9ISR, RISING);
+//    attachInterrupt(1, ic1ISR, RISING);
+//    attachInterrupt(2, ic2ISR, RISING);
+    attachInterrupt(3, ic3ISR, RISING);
+    attachInterrupt(4, ic4ISR, RISING);
+    attachInterrupt(5, ic5ISR, RISING);
+    attachInterrupt(6, ic6ISR, RISING);
+    attachInterrupt(7, ic7ISR, RISING);
+    attachInterrupt(8, ic8ISR, RISING);
+    attachInterrupt(9, ic9ISR, RISING);
   attachInterrupt(10, ic10ISR, RISING);
   attachInterrupt(11, ic11ISR, RISING);
   //  attachInterrupt(12, ic9ISR, RISING);
+
+  sei();
 
 }
 
