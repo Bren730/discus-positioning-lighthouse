@@ -24,13 +24,15 @@ class DataDiscus {
     // Variables
     byte sensorCount;
     byte syncPulseSensor;
+    
     byte pixelCount;
     byte neoPixelPin;
+    
     unsigned long connectionStartTime;
     uint16_t trackingStartDelay = 4000;
     bool shouldStartTracking = false;
     
-    NeoPixel ring = NeoPixel(24, 23);
+    NeoPixel ring = NeoPixel(60, 23);
     PulsePosition pulsePosition;
 
     State state = STATE_NONE;

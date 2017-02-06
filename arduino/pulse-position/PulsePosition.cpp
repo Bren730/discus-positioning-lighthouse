@@ -365,7 +365,9 @@ void PulsePosition::writeData() {
   for (byte i = 2; i < sensorCount + 2; i++) {
 
     if (sensors[i].sawSweep) {
+      
 #if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
+
 #ifdef BLUETOOTH
       Serial1.write(sensors[i].id);
       Serial1.write((sensors[i].deltaT >> 24));
@@ -380,9 +382,11 @@ void PulsePosition::writeData() {
       Serial.write((sensors[i].deltaT >> 8));
       Serial.write((sensors[i].deltaT & 0x00FF));
 #endif
+
 #endif
 
 #ifdef HUMAN_READABLE
+
 #ifdef BLUETOOTH
       Serial1.print(String(sensors[i].id) + ", ");
       Serial1.print(String(sensors[i].deltaT) + ", ");
@@ -393,6 +397,7 @@ void PulsePosition::writeData() {
       Serial.print(String(sensors[i].deltaT) + ", ");
       Serial.println();
 #endif
+
 #endif
     }
   }

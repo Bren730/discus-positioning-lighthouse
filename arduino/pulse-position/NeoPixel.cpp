@@ -160,10 +160,10 @@ void NeoPixel::showWaiting() {
 
     }
 
-    neoPixel.setPixelColor(i, r, g, b);
+    setPixel(i, r, g, b);
 
     if (waitingTwo) {
-      neoPixel.setPixelColor(i, r2, g2, b2);
+      setPixel(i, r2, g2, b2);
     }
 
   }
@@ -221,14 +221,14 @@ void NeoPixel::showPercentage() {
 
           float pixelProgress = (absoluteProgress - (i * percentagePerPin)) / percentagePerPin;
 
-          neoPixel.setPixelColor(i, pixelProgress * percentageRgb[0], pixelProgress * percentageRgb[1], pixelProgress * percentageRgb[2]);
+          setPixel(i, pixelProgress * percentageRgb[0], pixelProgress * percentageRgb[1], pixelProgress * percentageRgb[2]);
 
         } else if (i < currentPin) {
 
-          neoPixel.setPixelColor(i, percentageRgb[0], percentageRgb[1], percentageRgb[2]);
+          setPixel(i, percentageRgb[0], percentageRgb[1], percentageRgb[2]);
 
         } else {
-          neoPixel.setPixelColor(i, 0, 0, 0);
+          setPixel(i, 0, 0, 0);
 
         }
 
@@ -256,6 +256,22 @@ void NeoPixel::showPercentage() {
 
   }
 
+}
+
+void NeoPixel::setMasterPixelBrightness(float _brightness) {
+
+  masterPixelBrightness = _brightness;
+  
+}
+
+void NeoPixel::setPixel(int pixel, byte r, byte g, byte b) {
+
+  r *= masterPixelBrightness;
+  g *= masterPixelBrightness;
+  b *= masterPixelBrightness;
+
+  neoPixel.setPixelColor(pixel, r, g, b);
+  
 }
 
 void NeoPixel::show() {

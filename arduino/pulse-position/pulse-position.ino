@@ -43,6 +43,8 @@ void setup() {
   //  dataDiscus.pulsePosition.begin(sensorCount, syncPulseSensor);
   dataDiscus.begin();
 
+  dataDiscus.ring.setMasterPixelBrightness(0.5);
+
 
   //  attachInterrupt(IC_1, ic1ISR, CHANGE);
   //  attachInterrupt(IC_2, ic2ISR, CHANGE);
@@ -71,8 +73,8 @@ void setup() {
   Serial.println(dataDiscus.state);
 
   systemStartTime = millis();
+//  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
 
-  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
 }
 
 void loop() {

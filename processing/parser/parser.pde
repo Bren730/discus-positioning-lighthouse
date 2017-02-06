@@ -34,7 +34,7 @@ int recvCount = 0;
 float positionsF[][] = new float[saveCount][3];
 ArrayList<float[]> positions = new ArrayList<float[]>();
 boolean didWriteToFile = false;
-boolean writeToFile = true;
+boolean writeToFile = false;
 
 final int msgLength = 5;
 final int bufferSize = 32 * msgLength;

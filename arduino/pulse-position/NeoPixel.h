@@ -29,12 +29,16 @@ class NeoPixel {
     void setWaiting(byte baseColor[], byte highlightColor[], float highlightLengths[], float durations[], float fadeIn, bool reverse, bool two, bool additive);
 
     void show();
+    void setPixel(int pixel, byte r, byte g, byte b);
     
     void setPercentage(double _percentage, byte rgb[], uint16_t fadeIn, uint16_t duration);
     void showPercentage();
 
     // Variables
     Adafruit_NeoPixel neoPixel;
+
+    void setMasterPixelBrightness(float _brightness);
+    float masterPixelBrightness;
     
     unsigned long waitingStartTime;
     byte waitingBaseColor[3];

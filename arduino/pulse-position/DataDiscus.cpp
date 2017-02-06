@@ -53,7 +53,7 @@ void DataDiscus::setState(State _state) {
 
           byte _baseColor[] = {0, 0, 25};
           byte _highlightColor[] = {50, 100, 100};
-          float _lengths[] = {.65, .65};
+          float _lengths[] = {.95, .95};
           float _durations[] = {2500, 1954};
 
           ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(ddWaitingBaseColor));
