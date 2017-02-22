@@ -3,7 +3,6 @@
 
 #include "LighthouseSensor.h"
 #include "Pulse.h"
-#include "Adafruit_BLE_UART.h"
 
 class PulsePosition {
 

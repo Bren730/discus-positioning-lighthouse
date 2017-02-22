@@ -1,9 +1,9 @@
-#include "PulsePosition.h"
-#include <Arduino.h>
-
 //#define SYNC_PULSE_DEBUG
 //#define HUMAN_READABLE
-//#define BLUETOOTH
+#define BLUETOOTH
+
+#include "PulsePosition.h"
+#include <Arduino.h>
 
 void printBits(byte myByte) {
   for (byte mask = 0x80; mask; mask >>= 1) {
@@ -49,22 +49,9 @@ void PulsePosition::begin(byte _sensorCount, byte _syncPulseSensor) {
   }
 
   //  Serial.begin(115200);
-  Serial1.begin(115200);
+  Serial1.begin(921600);
   // Wait for Serial1 to start
   while (!Serial1);
-
-  // Set Bluetooth to highest speed
-  //  Serial1.print('$');
-  //  Serial1.print('$');
-  //  Serial1.print('$');
-  //  while(Serial1.available()) {
-  //
-  //    Serial1.println(Serial1.read());
-  //
-  //  }
-  //  Serial1.print("SU,92");
-  //  delay(100);
-  //  Serial1.begin(921600);
 
 #ifdef BLUETOOTH
   Serial1.println("PulsePosition initialised");

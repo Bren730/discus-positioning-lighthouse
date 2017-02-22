@@ -20,7 +20,6 @@ class DataDiscus {
     DataDiscus();
     DataDiscus(byte _sensorCount, byte _syncPulseSensor, byte _pixelCount, byte _neoPixelPin);
 
-
     // Variables
     byte sensorCount;
     byte syncPulseSensor;
@@ -32,16 +31,16 @@ class DataDiscus {
     uint16_t trackingStartDelay = 4000;
     bool shouldStartTracking = false;
     
-    NeoPixel ring = NeoPixel(60, 23);
+    NeoPixel ring = NeoPixel(24, 23);
     PulsePosition pulsePosition;
 
     State state = STATE_NONE;
 
     // Animation variables
     byte ddWaitingBaseColor[3] = {3, 10, 25};
-    byte ddWaitingHighlightColor[3] = {5, 100, 100};
-    float ddWaitingLengths[2] = {.8, .8};
-    float ddWaitingDurations[2] = {2500, 1954};
+    byte ddWaitingHighlightColor[3] = {5, 50, 127};
+    float ddWaitingLengths[2] = {1.1, 1.1};
+    float ddWaitingDurations[2] = {100, 5000};
 
     float ddBatteryLevelDurations[2] = {1500, 2000};
     float ddBatteryAnimationDuration = ddBatteryLevelDurations[1] + (2 * ddBatteryLevelDurations[0]);

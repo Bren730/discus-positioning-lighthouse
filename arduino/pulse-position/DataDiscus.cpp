@@ -51,10 +51,12 @@ void DataDiscus::setState(State _state) {
 
           shouldStartTracking = false;
 
-          byte _baseColor[] = {0, 0, 25};
-          byte _highlightColor[] = {50, 100, 100};
-          float _lengths[] = {.95, .95};
-          float _durations[] = {2500, 1954};
+          float len = 4000;
+
+          byte _baseColor[] = {0, 0, 100};
+          byte _highlightColor[] = {30, 110, 127};
+          float _lengths[] = {.8, 1};
+          float _durations[] = {0.5 * len, 0.7 * len};
 
           ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(ddWaitingBaseColor));
           ddByteArrayCopy(_highlightColor, ddWaitingHighlightColor, sizeof(ddWaitingHighlightColor));
@@ -94,8 +96,8 @@ void DataDiscus::setState(State _state) {
 
           shouldStartTracking = false;
           
-          byte _baseColor[] = {3, 10, 25};
-          byte _highlightColor[] = {5, 100, 255};
+          byte _baseColor[] = {10, 25, 25};
+          byte _highlightColor[] = {100, 255, 255};
           float _lengths[] = {.5, .5};
           float _durations[] = {1000, -1000};
 

@@ -1,5 +1,5 @@
 //#define SYNC_PULSE_DEBUG
-//#define BLUETOOTH
+#define BLUETOOTH
 
 #include "DataDiscus.h"
 #include "PulsePosition.h"
@@ -19,7 +19,7 @@
 #define IC_9 9
 
 const byte sensorCount = 10;
-const byte syncPulseSensor = 2;
+const byte syncPulseSensor = 3;
 
 DataDiscus dataDiscus(sensorCount, syncPulseSensor, 24, 23);
 
@@ -30,7 +30,7 @@ void setup() {
   Serial.begin(115200);
 
 #ifndef BLUETOOTH
-  // Wait for Serial to start
+  // Wait for Bluetooth Serial to start
   while (!Serial);
 #endif
 
@@ -73,7 +73,7 @@ void setup() {
   Serial.println(dataDiscus.state);
 
   systemStartTime = millis();
-//  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
+  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
 
 }
 
@@ -248,8 +248,8 @@ void attachInterrupts() {
   //  Serial.println("Attaching interrupts");
 
 //    attachInterrupt(1, ic1ISR, RISING);
-//    attachInterrupt(2, ic2ISR, RISING);
-    attachInterrupt(3, ic3ISR, RISING);
+    attachInterrupt(2, ic2ISR, RISING);
+//    attachInterrupt(3, ic3ISR, RISING);
     attachInterrupt(4, ic4ISR, RISING);
     attachInterrupt(5, ic5ISR, RISING);
     attachInterrupt(6, ic6ISR, RISING);
