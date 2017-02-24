@@ -1,6 +1,6 @@
 //#define SYNC_PULSE_DEBUG
-//#define HUMAN_READABLE
-#define BLUETOOTH
+#define HUMAN_READABLE
+//#define BLUETOOTH
 
 #include "PulsePosition.h"
 #include <Arduino.h>
@@ -36,13 +36,14 @@ void PulsePosition::begin(byte _sensorCount, byte _syncPulseSensor) {
   // Pins 0 and 1 are used for Bluetooth Serial, so sensors start from pin 2
   for (byte i = 2; i < sensorCount + 2; i++) {
 
-    LighthouseSensor sensor(i);
-    sensors[i] = sensor;
+    LighthouseSensor sensor(i, idCounter);
+    idCounter++;
+    sensors[idCounter] = sensor;
 
     // Check if Serial was initialised
     // Otherwise the microcontroller might get stuck
     if (Serial) {
-      Serial.println("Sensor " + String(i) + " initialised");
+      Serial.println("Sensor " + String(sensor.id) + " at pin " + String(sensor.pin) + " initialised");
     }
 
 
@@ -349,10 +350,10 @@ void PulsePosition::writeData() {
 #endif
 #endif
 
-  for (byte i = 2; i < sensorCount + 2; i++) {
+  for (int i = 0; i < sensorCount; i++) {
 
     if (sensors[i].sawSweep) {
-      
+
 #if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
 
 #ifdef BLUETOOTH
@@ -389,7 +390,7 @@ void PulsePosition::writeData() {
     }
   }
 
-  for (byte i = 2; i < sensorCount + 2; i++) {
+  for (int i = 0; i < sensorCount; i++) {
     // reset all sensors
     // sawSweep is used for reflection elimination
     sensors[i].sawSweep = false;
@@ -425,7 +426,7 @@ void PulsePosition::getOutputBuffer(uint8_t *buffer) {
   bufPos++;
 #endif
 
-  for (byte i = 2; i < sensorCount + 2; i++) {
+  for (byte i = 0; i < sensorCount; i++) {
 
     if (sensors[i].sawSweep) {
 #if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
@@ -444,7 +445,7 @@ void PulsePosition::getOutputBuffer(uint8_t *buffer) {
     }
   }
 
-  for (byte i = 2; i < sensorCount + 2; i++) {
+  for (byte i = 0; i < sensorCount; i++) {
     // reset all sensors
     // sawSweep is used for reflection elimination
     sensors[i].sawSweep = false;

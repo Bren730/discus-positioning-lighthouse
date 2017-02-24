@@ -1,5 +1,5 @@
 //#define SYNC_PULSE_DEBUG
-#define BLUETOOTH
+//#define BLUETOOTH
 
 #include "DataDiscus.h"
 #include "PulsePosition.h"

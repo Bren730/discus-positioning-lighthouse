@@ -48,6 +48,8 @@ class PulsePosition {
     Pulse syncPulse;
     Pulse prevSyncPulse;
 
+    int idCounter = 0;
+
     // Teensy can support a maximum of 34 sensors
     LighthouseSensor sensors[34];
 

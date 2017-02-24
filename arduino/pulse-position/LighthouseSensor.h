@@ -15,7 +15,7 @@ class LighthouseSensor {
   LighthouseSensor();
   
     // Constructor with pin
-    LighthouseSensor(unsigned char _pin);
+    LighthouseSensor(unsigned char _pin, int _id);
 
     // Variables
     volatile unsigned char pin;
