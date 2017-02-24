@@ -52,6 +52,9 @@ class PulsePosition {
 
     // Teensy can support a maximum of 34 sensors
     LighthouseSensor sensors[34];
+    // The sensors are connected to Teensy in a different sequence than 
+//    int sensorLocations[10] = {0, 9, 8, 7, 1, 2, 3, 4, 5, 6};
+    int sensorLocations[10] = {0, 9, 8, 7, 1, 6, 5, 4, 3, 2};
 
     volatile bool station;
     volatile bool skip;

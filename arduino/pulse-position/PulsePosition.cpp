@@ -1,6 +1,6 @@
 //#define SYNC_PULSE_DEBUG
-#define HUMAN_READABLE
-//#define BLUETOOTH
+//#define HUMAN_READABLE
+#define BLUETOOTH
 
 #include "PulsePosition.h"
 #include <Arduino.h>
@@ -36,14 +36,14 @@ void PulsePosition::begin(byte _sensorCount, byte _syncPulseSensor) {
   // Pins 0 and 1 are used for Bluetooth Serial, so sensors start from pin 2
   for (byte i = 2; i < sensorCount + 2; i++) {
 
-    LighthouseSensor sensor(i, idCounter);
+    LighthouseSensor sensor(i, idCounter, sensorLocations[idCounter]);
     idCounter++;
     sensors[idCounter] = sensor;
 
     // Check if Serial was initialised
     // Otherwise the microcontroller might get stuck
     if (Serial) {
-      Serial.println("Sensor " + String(sensor.id) + " at pin " + String(sensor.pin) + " initialised");
+      Serial.println("Sensor " + String(sensor.id) + " at pin " + String(sensor.pin) + " at pos " + String(sensor.pos) + " initialised");
     }
 
 
@@ -357,14 +357,14 @@ void PulsePosition::writeData() {
 #if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
 
 #ifdef BLUETOOTH
-      Serial1.write(sensors[i].id);
+      Serial1.write(sensors[i].pos);
       Serial1.write((sensors[i].deltaT >> 24));
       Serial1.write((sensors[i].deltaT >> 16));
       Serial1.write((sensors[i].deltaT >> 8));
       Serial1.write((sensors[i].deltaT & 0x00FF));
 #endif
 #ifndef BLUETOOTH
-      Serial.write(sensors[i].id);
+      Serial.write(sensors[i].pos);
       Serial.write((sensors[i].deltaT >> 24));
       Serial.write((sensors[i].deltaT >> 16));
       Serial.write((sensors[i].deltaT >> 8));
@@ -376,12 +376,12 @@ void PulsePosition::writeData() {
 #ifdef HUMAN_READABLE
 
 #ifdef BLUETOOTH
-      Serial1.print(String(sensors[i].id) + ", ");
+      Serial1.print(String(sensors[i].pos) + ", ");
       Serial1.print(String(sensors[i].deltaT) + ", ");
       Serial1.println();
 #endif
 #ifndef BLUETOOTH
-      Serial.print(String(sensors[i].id) + ", ");
+      Serial.print(String(sensors[i].pos) + ", ");
       Serial.print(String(sensors[i].deltaT) + ", ");
       Serial.println();
 #endif
@@ -430,7 +430,7 @@ void PulsePosition::getOutputBuffer(uint8_t *buffer) {
 
     if (sensors[i].sawSweep) {
 #if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
-      buffer[bufPos] = sensors[i].id;
+      buffer[bufPos] = sensors[i].pos;
       bufPos++;
       buffer[bufPos] = (sensors[i].deltaT >> 24);
       bufPos++;

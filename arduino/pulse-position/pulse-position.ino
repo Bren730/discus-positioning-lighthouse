@@ -1,5 +1,5 @@
 //#define SYNC_PULSE_DEBUG
-//#define BLUETOOTH
+#define BLUETOOTH
 
 #include "DataDiscus.h"
 #include "PulsePosition.h"
@@ -19,7 +19,8 @@
 #define IC_9 9
 
 const byte sensorCount = 10;
-const byte syncPulseSensor = 3;
+// The sync pulse sensor as counted by their ids, not the pin
+const byte syncPulseSensor = 2;
 
 DataDiscus dataDiscus(sensorCount, syncPulseSensor, 24, 23);
 
@@ -30,8 +31,8 @@ void setup() {
   Serial.begin(115200);
 
 #ifndef BLUETOOTH
-  // Wait for Bluetooth Serial to start
-  while (!Serial);
+  // Wait for Serial to start for four seconds
+  while (!Serial || millis() > 4000);
 #endif
 
   // Enable clock cycle counter
@@ -42,6 +43,8 @@ void setup() {
 
   //  dataDiscus.pulsePosition.begin(sensorCount, syncPulseSensor);
   dataDiscus.begin();
+  Serial.println(syncPulseSensor);
+  Serial.println("Sync pulse sensor id " + String(dataDiscus.pulsePosition.sensors[syncPulseSensor].id) + " on pin " + String(dataDiscus.pulsePosition.sensors[syncPulseSensor].pin));
 
   dataDiscus.ring.setMasterPixelBrightness(0.5);
 
@@ -73,7 +76,7 @@ void setup() {
   Serial.println(dataDiscus.state);
 
   systemStartTime = millis();
-  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
+//  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
 
 }
 
@@ -93,7 +96,7 @@ void loop() {
     if (millis() > dataDiscus.connectionStartTime + dataDiscus.trackingStartDelay && dataDiscus.shouldStartTracking) {
       dataDiscus.setState(DataDiscus::STATE_TRACKING);
       Serial.println("Tracking started");
-      attachInterrupt(syncPulseSensor, ic0ISR, CHANGE);
+      attachInterrupt(dataDiscus.pulsePosition.sensors[syncPulseSensor].pin, syncPulseISR, CHANGE);
     }
 
     dataDiscus.ring.update();
@@ -150,7 +153,7 @@ void loop() {
 
 }
 
-void ic0ISR() {
+void syncPulseISR() {
 
   Pulse pulse = dataDiscus.pulsePosition.parsePulse(dataDiscus.pulsePosition.sensors[syncPulseSensor]);
 
@@ -164,6 +167,13 @@ void ic0ISR() {
     sei();
 
   }
+
+}
+
+void ic0ISR() {
+
+  dataDiscus.pulsePosition.writePulseTime(dataDiscus.pulsePosition.sensors[0]);
+  detachInterrupt(dataDiscus.pulsePosition.sensors[0].pin);
 
 }
 
@@ -247,17 +257,17 @@ void attachInterrupts() {
   cli();
   //  Serial.println("Attaching interrupts");
 
-//    attachInterrupt(1, ic1ISR, RISING);
-    attachInterrupt(2, ic2ISR, RISING);
-//    attachInterrupt(3, ic3ISR, RISING);
-    attachInterrupt(4, ic4ISR, RISING);
-    attachInterrupt(5, ic5ISR, RISING);
-    attachInterrupt(6, ic6ISR, RISING);
-    attachInterrupt(7, ic7ISR, RISING);
-    attachInterrupt(8, ic8ISR, RISING);
-    attachInterrupt(9, ic9ISR, RISING);
-  attachInterrupt(10, ic10ISR, RISING);
-  attachInterrupt(11, ic11ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[0].pin, ic0ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[1].pin, ic1ISR, RISING);
+  //    attachInterrupt(3, ic2ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[3].pin, ic3ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[4].pin, ic4ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[5].pin, ic5ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[6].pin, ic6ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[7].pin, ic7ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[8].pin, ic8ISR, RISING);
+  attachInterrupt(dataDiscus.pulsePosition.sensors[9].pin, ic9ISR, RISING);
+//  attachInterrupt(dataDiscus.pulsePosition.sensors[10].pin, ic11ISR, RISING);
   //  attachInterrupt(12, ic9ISR, RISING);
 
   sei();
