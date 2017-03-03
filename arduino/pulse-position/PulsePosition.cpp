@@ -320,14 +320,34 @@ void PulsePosition::writeData() {
 #if !defined(HUMAN_READABLE) && !defined(SYNC_PULSE_DEBUG)
 
 #ifdef BLUETOOTH
+
+  // Write start flags
   Serial1.write(0xff);
   Serial1.write(0xff);
+
+  // Write metadata byte
   Serial1.write(meta);
+
+  // Write out the current timestamp
+  Serial1.write((syncPulseStart >> 24));
+  Serial1.write((syncPulseStart >> 16));
+  Serial1.write((syncPulseStart >> 8));
+  Serial1.write((syncPulseStart & 0x00FF));
 #endif
 #ifndef BLUETOOTH
+
+  // Write start flags
   Serial.write(0xff);
   Serial.write(0xff);
+
+  // Write metadata byte
   Serial.write(meta);
+
+  // Write out the current timestamp
+  Serial.write((syncPulseStart >> 24));
+  Serial.write((syncPulseStart >> 16));
+  Serial.write((syncPulseStart >> 8));
+  Serial.write((syncPulseStart & 0x00FF));
 #endif
 #endif
 
