@@ -46,6 +46,10 @@ class DataDiscus {
     float ddBatteryAnimationDuration = ddBatteryLevelDurations[1] + (2 * ddBatteryLevelDurations[0]);
     bool didShowBatteryLevel = false;
 
+    // Time in milliseconds before the system enters sleep mode
+    unsigned long sleepStartTime;
+    uint32_t sleepDelay = 60 * 1000;
+
     // Definitions
 
     // Functions
@@ -57,6 +61,9 @@ class DataDiscus {
     bool isConnected();
     bool isPairing();
     bool isTracking();
+
+    void sleep();
+    void wake();
 
 };
 

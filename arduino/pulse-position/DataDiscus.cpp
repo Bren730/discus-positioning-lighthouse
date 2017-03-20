@@ -55,7 +55,7 @@ void DataDiscus::setState(State _state) {
 
           byte _baseColor[] = {0, 0, 100};
           byte _highlightColor[] = {30, 110, 127};
-          float _lengths[] = {.8, 1};
+          float _lengths[] = {.6, .8};
           float _durations[] = {0.5 * len, 0.7 * len};
 
           ddByteArrayCopy(_baseColor, ddWaitingBaseColor, sizeof(ddWaitingBaseColor));
@@ -64,14 +64,17 @@ void DataDiscus::setState(State _state) {
           ddFloatArrayCopy(_durations, ddWaitingDurations, sizeof(ddWaitingDurations));
 
           ring.setWaiting(ddWaitingBaseColor, ddWaitingHighlightColor, ddWaitingLengths, ddWaitingDurations, 500, false, true, true);
+
+          sleepStartTime = millis();
+          
         }
       }
       break;
 
     case STATE_CONNECTED: {
-      
+
         if (_state != state) {
-          
+
           byte _baseColor[] = {0, 10, 0};
           byte _highlightColor[] = {5, 255, 0};
           float _lengths[] = {.5, .5};
@@ -95,7 +98,7 @@ void DataDiscus::setState(State _state) {
         if (_state != state) {
 
           shouldStartTracking = false;
-          
+
           byte _baseColor[] = {10, 25, 25};
           byte _highlightColor[] = {100, 255, 255};
           float _lengths[] = {.5, .5};
@@ -133,7 +136,7 @@ void DataDiscus::setState(State _state) {
 
 void DataDiscus::showBatteryLevel() {
 
-  float percentage = 0.9;
+  float percentage = 0.8;
   byte r = (1 - percentage) * 255;
   byte g = percentage * 255;
 
@@ -167,5 +170,36 @@ bool DataDiscus::isTracking() {
 
   return (state == STATE_TRACKING);
 
+}
+
+void DataDiscus::sleep() {
+
+  setState(STATE_NONE);
+  didShowBatteryLevel = false;
+
+  unsigned long startTime = millis();
+
+  float brightness = ring.masterPixelBrightness;
+  ring.tempMasterPixelBrightness = brightness;
+
+  while (millis() < startTime + 1000) {
+
+    float perc = (millis() - startTime) / 1000.0;
+    float eased = 1 - ExponentialEaseOut(perc);
+
+    ring.setMasterPixelBrightness(brightness * eased);
+    ring.update();
+    
+  }
+
+  ring.setMasterPixelBrightness(0.0);
+  ring.update();
+
+}
+
+void DataDiscus::wake() {
+
+  ring.setMasterPixelBrightness(ring.tempMasterPixelBrightness);
+  
 }
 

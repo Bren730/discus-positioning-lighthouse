@@ -5,6 +5,7 @@
 #include "PulsePosition.h"
 #include "NeoPixel.h"
 #include <Math.h>
+#include <Snooze.h>
 
 // Teensy 3.2 can run interrupts on pins 0-23 (exposed) and 24-33 (underside)
 #define IC_0 0
@@ -26,13 +27,18 @@ DataDiscus dataDiscus(sensorCount, syncPulseSensor, 24, 23);
 
 unsigned long systemStartTime;
 
+SnoozeTouch touch;
+SnoozeBlock snoozeBlock(touch);
+
 void setup() {
 
   Serial.begin(115200);
 
+  unsigned long t = millis();
+
 #ifndef BLUETOOTH
-  // Wait for Serial to start for four seconds
-  while (!Serial || millis() > 4000);
+  // Wait for Serial to start
+  while (!Serial && millis() < t + 1000);
 #endif
 
   // Enable clock cycle counter
@@ -76,13 +82,36 @@ void setup() {
   Serial.println(dataDiscus.state);
 
   systemStartTime = millis();
-//  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
+  //  dataDiscus.sleepStartTime = millis();
+  //  dataDiscus.setState(DataDiscus::STATE_CONNECTED);
+
+  touch.pinMode(22, touchRead(22) + 250);
 
 }
 
 void loop() {
 
+  if (millis() > dataDiscus.sleepStartTime + dataDiscus.sleepDelay && dataDiscus.state == DataDiscus::STATE_DISCONNECTED) {
+
+    touch.pinMode(22, touchRead(22) + 250);
+
+    Serial.println("Going to sleep");
+    dataDiscus.sleep();
+
+    delay(1000);
+
+    Snooze.hibernate(snoozeBlock);
+
+    systemStartTime = millis();
+    dataDiscus.sleepStartTime = millis();
+    dataDiscus.wake();
+    dataDiscus.showBatteryLevel();
+
+  }
+
   if (!dataDiscus.isTracking()) {
+
+    dataDiscus.ring.update();
 
     if (((millis() - systemStartTime) > (dataDiscus.ddBatteryAnimationDuration + 200)) && !dataDiscus.didShowBatteryLevel) {
 
@@ -94,12 +123,52 @@ void loop() {
     }
 
     if (millis() > dataDiscus.connectionStartTime + dataDiscus.trackingStartDelay && dataDiscus.shouldStartTracking) {
+
+      float fadeOutDuration = 1000;
+      float fadeInDuration = 150;
+
+      unsigned long startTime = millis();
+
+      while (millis() < startTime + fadeInDuration) {
+
+        float perc = (millis() - startTime) / fadeInDuration;
+        byte color = perc * 255;
+
+        for (int i = 0; i < dataDiscus.pixelCount; i++) {
+
+          dataDiscus.ring.setPixel(i, color, color, color);
+
+        }
+
+        dataDiscus.ring.show();
+        delay(1);
+
+      }
+
+      startTime = millis();
+
+      while (millis() < startTime + fadeOutDuration) {
+
+        float perc = (millis() - startTime ) / fadeOutDuration;
+        float eased = 1 - ExponentialEaseOut(perc);
+        byte color = eased * 255;
+
+        for (int i = 0; i < dataDiscus.pixelCount; i++) {
+
+          dataDiscus.ring.setPixel(i, color, color, color);
+
+        }
+
+        dataDiscus.ring.show();
+        delay(1);
+
+      }
+
       dataDiscus.setState(DataDiscus::STATE_TRACKING);
+
       Serial.println("Tracking started");
       attachInterrupt(dataDiscus.pulsePosition.sensors[syncPulseSensor].pin, syncPulseISR, CHANGE);
     }
-
-    dataDiscus.ring.update();
 
   }
 
@@ -122,7 +191,9 @@ void loop() {
   }
 
   if (inString != "") {
+
     Serial.println(inString);
+
     if (inString.indexOf("NEW_PAIRING") > 0 ) {
 
       detachInterrupt(syncPulseSensor);
@@ -146,6 +217,14 @@ void loop() {
 
       Serial.println("DataDiscus disconnected from a device");
     }
+
+    // Set pixel brightness command
+    if (inString.indexOf("SPB") > 0 ) {
+
+
+
+    }
+
   }
 
   //  ring.setPercentage(random(0, 100) / 100.0, highlightColor, 2000, 1000);
@@ -267,7 +346,7 @@ void attachInterrupts() {
   attachInterrupt(dataDiscus.pulsePosition.sensors[7].pin, ic7ISR, RISING);
   attachInterrupt(dataDiscus.pulsePosition.sensors[8].pin, ic8ISR, RISING);
   attachInterrupt(dataDiscus.pulsePosition.sensors[9].pin, ic9ISR, RISING);
-//  attachInterrupt(dataDiscus.pulsePosition.sensors[10].pin, ic11ISR, RISING);
+  //  attachInterrupt(dataDiscus.pulsePosition.sensors[10].pin, ic11ISR, RISING);
   //  attachInterrupt(12, ic9ISR, RISING);
 
   sei();
